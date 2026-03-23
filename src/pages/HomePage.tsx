@@ -289,7 +289,7 @@ export default function HomePage() {
       {showBottomSheet && (
         <motion.div 
           drag="y"
-          dragConstraints={{top: -10, bottom: 400}}
+          dragConstraints={{top: -40, bottom: 400}}
           dragElastic={0.1}
           initial={{y: "100%"}}
           animate={{y: 0}}
@@ -485,7 +485,7 @@ const ss: Record<string, React.CSSProperties> = {
   screen: { flex: 1, height: '100%', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
-    padding: '52px 16px 12px', display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none',
+    padding: '20px 16px 12px', display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none',
   },
   menuBtn: {
     width: 44, height: 44, borderRadius: 12, background: 'white',

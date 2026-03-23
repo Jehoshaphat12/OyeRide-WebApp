@@ -5,6 +5,8 @@ import { Icon, IconName } from './Icons';
 
 interface Props { open: boolean; onClose: () => void; }
 
+const APK_DIRECT_URL = 'https://github.com/Jehoshaphat12/OyeRide-WebApp/releases/download/v1.0.0-beta/application-70269627-196e-4916-99fe-d72149a62c87.apk'; // optional: direct APK download URL before Play Store listing
+
 const MENU_ITEMS: { icon: IconName; label: string; path: string }[] = [
   { icon: 'home',     label: 'Home',        path: '/' },
   { icon: 'history',  label: 'Ride History',path: '/history' },
@@ -21,6 +23,17 @@ export default function Sidebar({ open, onClose }: Props) {
 
   const handleNav = (path: string) => { navigate(path); onClose(); };
   const handleLogout = async () => { await logout(); navigate('/login'); onClose(); };
+
+
+  // ─── Detection helpers ────────────────────────────────────────────────────────
+function isAndroid(): boolean {
+  return /android/i.test(navigator.userAgent);
+}
+
+const handleDownload = () => {
+    const url = APK_DIRECT_URL;
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <>
@@ -56,6 +69,20 @@ export default function Sidebar({ open, onClose }: Props) {
             </button>
           ))}
         </div>
+        {/* CTA buttons */}
+        {isAndroid() && 
+        <div style={{padding: 16}}>
+
+                <button style={styles.downloadBtn} onClick={handleDownload}>
+                  {/* <PlayStoreLogo /> */}
+                  <div style={styles.downloadBtnTexts}>
+                    <span style={styles.downloadBtnSub}>GET THE MOBILE APP</span>
+                    <span style={styles.downloadBtnMain}>Downloa Now!</span>
+                  </div>
+                  <Icon name="arrow-right" size={18} color="white" />
+                </button>
+        </div>
+        }
 
         {/* Logout */}
         <button style={styles.logoutBtn} onClick={handleLogout}>
@@ -116,6 +143,41 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', gap: 14,
     padding: '15px 20px', background: 'transparent', border: 'none',
     borderTop: '1px solid #eee', cursor: 'pointer', width: '100%',
+  },
+  // Download button
+  downloadBtn: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '14px 20px',
+    background: '#000',
+    borderRadius: 14,
+    border: 'none',
+    cursor: 'pointer',
+    marginBottom: 12,
+    boxShadow: '0 4px 18px rgba(0,0,0,0.3)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
+  },
+  downloadBtnTexts: {
+    flex: 1,
+    textAlign: 'left',
+  },
+  downloadBtnSub: {
+    display: 'block',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.75)',
+    fontFamily: "'Poppins', sans-serif",
+    letterSpacing: 1,
+    fontWeight: 500,
+  },
+  downloadBtnMain: {
+    display: 'block',
+    fontSize: 18,
+    color: 'white',
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 500,
+    lineHeight: 1.2,
   },
   logoutLabel: { fontSize: 15, fontWeight: 600, color: '#f44336', fontFamily: "'Poppins', sans-serif" },
   footer: { padding: '12px 20px', borderTop: '1px solid #f0f0f0' },

@@ -3,6 +3,7 @@ import { VehicleType, calculateFare, calculateSurgeMultiplier, SurgeInfo } from 
 import { Icon } from './Icons';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '../lib/firebase';
+import { motion, useAnimation } from 'framer-motion';
 
 export interface RideOption {
   id: string;
@@ -102,9 +103,27 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
   const selected = rides.find((r) => r.id === selectedId);
 
   return (
-    <div style={s.sheet}>
+    <>
+    <motion.div 
+          drag="y"
+          dragConstraints={{top: -50, bottom: 250}}
+          dragElastic={0.1}
+          initial={{y: "100%"}}
+          animate={{y: 0}}
+          exit={{ y: "100%" }}
+        // Logic to snap back or close
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 150) {
+            // If dragged down far enough, you could hide it
+            // or just let it snap back to bottom: 70
+          }
+        }} 
+    
+    style={s.sheet}>
       {/* Handle */}
-      <div style={s.handle} />
+      <div style={{ width: '100%', padding: '12px 0', cursor: 'grab' }}>
+  <div style={s.handle} />
+</div>
 
       {/* Locations bar */}
       <div style={s.locBar}>
@@ -209,6 +228,7 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
           );
         })}
       </div>
+        </motion.div>
 
       {/* Footer confirm */}
       <div style={s.footer}>
@@ -220,7 +240,7 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
           {selected ? `CONFIRM  ${selected.title.toUpperCase()}` : 'SELECT A RIDE TYPE'}
         </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -230,6 +250,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column',
     boxShadow: '0 -6px 30px rgba(0,0,0,0.18)', zIndex: 300, maxHeight: '84%',
     animation: 'slideUp 0.3s ease',
+    paddingBottom: 50,
   },
   handle: { width: 40, height: 4, background: '#ddd', borderRadius: 2, margin: '10px auto 0', flexShrink: 0 },
   locBar: {
@@ -294,8 +315,11 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   footer: {
-    padding: '14px 16px', borderTop: '1px solid #f0f0f0', flexShrink: 0,
+    position: "fixed", bottom: 0, left: 0, right: 0,
+    background: "#fff",
+    padding: '18px 16px', borderTop: '1px solid #f0f0f0', flexShrink: 0,
     paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))',
+    zIndex: 9999
   },
   confirmBtn: {
     width: '100%', padding: '16px',

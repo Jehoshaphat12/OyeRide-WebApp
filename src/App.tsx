@@ -10,6 +10,7 @@ import ContactUsPage from './pages/ContactUsPage';
 import SafetyPage from './pages/SafetyPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
+import AndroidInstallBanner from './components/AndroidInstallBanner';
 import './styles/globals.css';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <div className="app-shell">
+      <AndroidInstallBanner />
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
