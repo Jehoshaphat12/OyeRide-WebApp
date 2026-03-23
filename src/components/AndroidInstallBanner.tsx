@@ -105,11 +105,12 @@ export default function AndroidInstallBanner() {
         <div style={s.appRow}>
           <div style={s.appIcon}>
             {/* OyeRide logo mark */}
-            <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
+            {/* <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
               <path d="M12 27c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
               <circle cx="22" cy="16" r="4" fill="white" />
               <path d="M17 32l5-5 5 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            </svg> */}
+            <span style={{fontWeight: 700, color: "#fff"}}>Oye</span>
           </div>
           <div style={s.appInfo}>
             <div style={s.appName}>OyeRide</div>
