@@ -281,20 +281,9 @@ export default function HomePage() {
               <NotificationBell unreadCount={unreadCount} notifications={notifications}
                 onMarkAllRead={markAllAsRead} onMarkRead={markAsRead} onAction={handleNotificationAction} />
             </div>
-            <div style={ss.appIcon}>
-            {/* OyeRide logo mark */}
-            {/* <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
-              <path d="M12 27c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
-              <circle cx="22" cy="16" r="4" fill="white" />
-              <path d="M17 32l5-5 5 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg> */}
-            <span style={{fontWeight: 700, color: "#fff"}}>Oye</span>
-          </div>
           </>
         )}
       </div>
-
-      
       
 
       {/* ── HOME BOTTOM SHEET (idle state) ── */}
@@ -592,15 +581,4 @@ const ss: Record<string, React.CSSProperties> = {
   notifPromptSub: { fontSize: 11, color: '#888', marginTop: 1 },
   notifAllowBtn: { padding: '8px 14px', borderRadius: 10, background: '#061ffa', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif", flexShrink: 0 },
   notifDismissBtn: { background: '#f0f0f0', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 },
-  appIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    background: 'linear-gradient(135deg, #061ffa, #394cfc)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    boxShadow: '0 4px 14px rgba(6,31,250,0.35)',
-  },
 };
