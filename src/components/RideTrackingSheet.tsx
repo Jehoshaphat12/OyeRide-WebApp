@@ -132,7 +132,7 @@ export default function RideTrackingSheet({ rideState, ride, driverInfo, onCance
                 <Icon name="cash" size={16} color="#888" style={{ marginRight: 8 }} />
                 <span style={styles.fareLabel}>Total Fare</span>
               </div>
-              <span style={styles.fareValue}>GH₵ {(ride.totalFare || 0).toFixed(2)}</span>
+              <span style={styles.fareValue}>GH₵ {(Math.round(ride.totalFare) || 0)}</span>
             </div>
           )}
 
