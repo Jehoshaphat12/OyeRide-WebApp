@@ -20,13 +20,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div style={splashStyles.screen}>
         <div style={splashStyles.logoBox}>
-          <div style={splashStyles.logoCircle}>
+          {/* <div style={splashStyles.logoCircle}>
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
               <path d="M12 27c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
               <circle cx="22" cy="16" r="4" fill="white" />
               <path d="M17 32l5-5 5 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </div>
+          </div> */}
           <span style={splashStyles.logoText}>OyeRide</span>
         </div>
         <div style={splashStyles.spinnerWrap}>

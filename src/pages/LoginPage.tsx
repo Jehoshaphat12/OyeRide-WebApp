@@ -34,12 +34,14 @@ export default function LoginPage() {
     if (mode === 'register') {
       if (!name.trim()) return setError('Enter your full name');
       if (!phone.trim()) return setError('Enter your phone number');
+      // if (!phone.length) return setError('Enter your phone number');
       if (password.length < 6) return setError('Password must be at least 6 characters');
       if (password !== confirm) return setError('Passwords do not match');
     }
     setLoading(true);
     try {
       if (mode === 'login') await login(email, password);
+      if(phone[1] === '0') setPhone('+233' + phone.slice(1));
       else await register(email, password, name, phone);
       navigate('/');
     } catch (e: any) {

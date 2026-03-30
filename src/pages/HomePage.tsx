@@ -122,6 +122,22 @@ export default function HomePage() {
       if (['accepted', 'arriving', 'arrived'].includes(ride.status)) {
         setRideState('driver_assigned');
         if (ride.driverId) fetchDriverInfo(ride.driverId);
+        if (ride.driverId) {
+          // Track driver location from Realtime DB
+          const { database } = await import('../lib/firebase');
+          const { ref, onValue, off } = await import('firebase/database');
+          const locRef = ref(database, `driver_locations/${ride.driverId}`);
+          const handler = onValue(locRef, (snap) => {
+            if (snap.exists()) {
+              const loc = snap.val().location;
+              if (loc) setDriverLocation({ lat: loc.latitude, lng: loc.longitude });
+            }
+          });
+          // Cleanup on ride end
+          const cleanup = () => off(locRef, 'value', handler);
+          const prevUnsub = rideUnsubRef.current;
+          rideUnsubRef.current = () => { prevUnsub?.(); cleanup(); };
+        }
       } else if (ride.status === 'in_progress') {
         setRideState('en_route');
         if (ride.driverId) {

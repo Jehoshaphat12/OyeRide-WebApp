@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Ride, RideState } from '../types';
 import { Icon } from './Icons';
+import { motion, useAnimation } from 'framer-motion';
 
 interface Props {
   rideState: RideState;
@@ -38,8 +39,25 @@ export default function RideTrackingSheet({ rideState, ride, driverInfo, onCance
   const timeStr = `${pad(Math.floor(searchTime / 60))}:${pad(searchTime % 60)}`;
 
   return (
-    <div style={styles.sheet}>
+    <motion.div 
+
+    drag="y"
+          dragConstraints={{top: 0, bottom: 250}}
+          dragElastic={0.1}
+          initial={{y: "100%"}}
+          animate={{y: 0}}
+          exit={{ y: "100%" }}
+        // Logic to snap back or close
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 150) {
+            // If dragged down far enough, you could hide it
+            // or just let it snap back to bottom: 70
+          }
+        }} 
+    style={styles.sheet}>
+      <div style={{ width: '100%', padding: '12px 0', cursor: 'grab' }}>
       <div style={styles.handle} />
+      </div>
 
       {rideState === 'searching' && (
         <div style={styles.searchingSection}>
@@ -144,7 +162,7 @@ export default function RideTrackingSheet({ rideState, ride, driverInfo, onCance
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

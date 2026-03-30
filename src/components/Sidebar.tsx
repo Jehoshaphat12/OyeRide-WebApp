@@ -51,7 +51,7 @@ const handleDownload = () => {
             <div style={styles.userEmail}>{user?.email || ''}</div>
             <div style={styles.ratingBadge}>
               <Icon name="star-fill" size={11} color="#ffc107" style={{ marginRight: 3 }} />
-              {(user?.rating || 0).toFixed(1)}
+              {((user?.rating)?.toFixed(1) || 0)}
             </div>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>

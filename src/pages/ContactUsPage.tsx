@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icons';
 
 const CONTACT_METHODS = [
-  { icon: <Icon name="phone"    size={22} color="#4caf50" />, label: 'Call Us',    value: '+233 XX XXX XXXX',  action: 'tel:+233XXXXXXXXX',          color: '#4caf50', bg: '#f0fff4' },
-  { icon: <Icon name="mail"     size={22} color="#061ffa" />, label: 'Email Us',   value: 'support@oyeride.com', action: 'mailto:support@oyeride.com', color: '#061ffa', bg: '#e8edff' },
-  { icon: <Icon name="whatsapp" size={22} color="#25d366" />, label: 'WhatsApp',   value: 'Chat with support',  action: 'https://wa.me/233XXXXXXXXX', color: '#25d366', bg: '#f0fff4' },
+  { icon: <Icon name="phone"    size={22} color="#4caf50" />, label: 'Call Us',    value: '+233 20 326 4716',  action: 'tel:+233203264716',          color: '#4caf50', bg: '#f0fff4' },
+  { icon: <Icon name="mail"     size={22} color="#061ffa" />, label: 'Email Us',   value: 'support@oyeride.com', action: 'mailto:riderequest01@gmail.com', color: '#061ffa', bg: '#e8edff' },
+  { icon: <Icon name="whatsapp" size={22} color="#25d366" />, label: 'WhatsApp',   value: 'Chat with support',  action: 'https://wa.me/233203264716', color: '#25d366', bg: '#f0fff4' },
   { icon: <Icon name="twitter"  size={22} color="#1da1f2" />, label: 'Twitter / X', value: '@OyeRideGH',         action: 'https://twitter.com/oyeride', color: '#1da1f2', bg: '#e8f4fd' },
 ];
 

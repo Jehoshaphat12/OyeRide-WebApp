@@ -52,13 +52,13 @@ export function calculateSurgeMultiplier(
   const isLateNight = hour >= 23 || hour <= 4;
   const isEarlyMorning = hour >= 5 && hour <= 6;
   if (isLateNight) {
-    multiplier *= 1.4;
+    multiplier *= 0.7;
     reasons.push('Late night');
   } else if (isRushHour) {
-    multiplier *= 1.3;
+    multiplier *= 0.6;
     reasons.push('Rush hour');
   } else if (isEarlyMorning) {
-    multiplier *= 1.15;
+    multiplier *= 0.5;
     reasons.push('Early morning');
   }
 

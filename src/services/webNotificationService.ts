@@ -84,7 +84,7 @@ export class WebNotificationService {
       });
 
       if (token) {
-        console.log('FCM Token:', token);
+        // console.log('FCM Token:', token);
         // Save to Firestore so the driver-side backend can send notifications to this passenger
         await FirestoreService.updateUser(userId, {
           fcmToken: token,
