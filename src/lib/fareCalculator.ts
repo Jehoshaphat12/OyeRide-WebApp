@@ -37,13 +37,13 @@ export function calculateSurgeMultiplier(
   // Demand-based surge
   const ratio = availableDrivers / Math.max(activeRequests, 1);
   if (ratio < 0.3) {
-    multiplier *= 1.8;
+    // multiplier *= 1.8;
     reasons.push('Very high demand');
   } else if (ratio < 0.6) {
-    multiplier *= 1.4;
+    // multiplier *= 1.4;
     reasons.push('High demand');
   } else if (ratio < 1.0) {
-    multiplier *= 1.2;
+    // multiplier *= 1.2;
     reasons.push('Busy area');
   }
 
@@ -52,13 +52,13 @@ export function calculateSurgeMultiplier(
   const isLateNight = hour >= 23 || hour <= 4;
   const isEarlyMorning = hour >= 5 && hour <= 6;
   if (isLateNight) {
-    multiplier *= 0.7;
+    // multiplier *= 0.7;
     reasons.push('Late night');
   } else if (isRushHour) {
-    multiplier *= 0.6;
+    // multiplier *= 0.6;
     reasons.push('Rush hour');
   } else if (isEarlyMorning) {
-    multiplier *= 0.5;
+    // multiplier *= 0.5;
     reasons.push('Early morning');
   }
 
