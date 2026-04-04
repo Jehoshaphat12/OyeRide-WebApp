@@ -22,6 +22,13 @@ export class FirestoreService {
     return userDoc.exists() ? (userDoc.data() as User) : null;
   }
 
+static async getAdminUsers(): Promise<User[]> {
+  const usersRef = collection(firestore, "users");
+  const q = query(usersRef, where("userType", "==", "admin"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+}
+
   static async updateUser(userId: string, data: Partial<User>): Promise<void> {
     await setDoc(doc(firestore, 'users', userId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
   }

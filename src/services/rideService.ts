@@ -14,7 +14,8 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import app, { firestore } from '../lib/firebase'; // Adjust paths to your config
 import { FirestoreService } from './firestoreService';
 import { calculateFare } from '../lib/fareCalculator';
-import { VehicleType, Ride, Driver } from '../types';
+import { VehicleType, Ride, Driver, User } from '../types';
+import { useEffect } from 'react';
 
 // Initialize Functions (Matching your mobile region)
 const functions = getFunctions(app, "europe-west1");
@@ -81,8 +82,49 @@ export class RideService {
   }
 
   /**
-   * Find nearby drivers using geohash (Web Version)
-   */
+ * Notify all admin users about a new ride request
+ */
+static async notifyAdminsOfNewRide(rideId: string, rideData: Partial<Ride>): Promise<void> {
+  try {
+    // 1. Fetch all admin users
+    const adminUsers = await FirestoreService.getAdminUsers(); // or your own query
+    if (adminUsers.length === 0) return;
+
+    // 2. Prepare notification content
+    const pickupAddress = rideData.pickup?.address?.split(",")[0] || "Unknown location";
+    const passengerName = rideData.passengerName || "A passenger";
+    const title = "🆕 New Ride Request";
+    const body = `${passengerName} requested a ride from ${pickupAddress}`;
+
+    // 3. Send in‑app notifications (and optionally push)
+    for (const admin of adminUsers) {
+
+      if (admin.fcmToken) {
+        // You can use your existing push function
+       const notifyNearby = httpsCallable(functions, "notifyNearbyDrivers");
+        
+        await notifyNearby({
+          tokens: admin,
+          notification: {
+            title: "New Ride Request 🚖",
+            body: "A passenger nearby needs a ride",
+          },
+          extraData: {
+            rideId: rideId,
+            screen: "/admin/rides", 
+            type: "admin_ride_notification"
+          },
+        });
+      }
+    }
+
+    console.log(`✅ Notified ${adminUsers.length} admin(s) about ride ${rideId}`);
+  } catch (error) {
+    console.error("Failed to notify admins:", error);
+    // Don't throw – we don't want to break the ride creation flow
+  }
+}
+
   /**
    * Find nearby drivers using geohash
    */
