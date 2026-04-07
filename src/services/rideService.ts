@@ -104,7 +104,7 @@ static async notifyAdminsOfNewRide(rideId: string, rideData: Partial<Ride>): Pro
        const notifyNearby = httpsCallable(functions, "notifyNearbyDrivers");
         
         await notifyNearby({
-          tokens: admin,
+          tokens: admin.fcmToken,
           notification: {
             title: "New Ride Request 🚖",
             body: "A passenger nearby needs a ride",

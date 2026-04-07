@@ -32,140 +32,146 @@ export default function ConfirmRideSheet({
 }: Props) {
   const v = VEHICLE_LABELS[vehicleType];
   return (
-    <motion.div
-      drag="y"
-      dragConstraints={{ top: 0, bottom: 250 }}
-      dragElastic={0.1}
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      // Logic to snap back or close
-      onDragEnd={(e, info) => {
-        if (info.offset.y > 150) {
-          // If dragged down far enough, you could hide it
-          // or just let it snap back to bottom: 70
-        }
-      }}
-      style={styles.sheet}
-    >
-      <div style={{ width: '100%', padding: '12px 0', cursor: 'grab' }}>
-      <div style={styles.handle} />
-      </div>
-      <div style={styles.header}>
-        <button style={styles.backBtn} onClick={onBack}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#333"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
-        </button>
-        <h3 style={styles.title}>Confirm Ride</h3>
-        <div style={{ width: 36 }} />
-      </div>
-
-      {/* Vehicle */}
-      <div style={styles.vehicleRow}>
-        <div style={styles.vehicleEmoji}>
-          <Icon name={v.icon} size={26} color="#061ffa" strokeWidth={1.5} />
-        </div>
-        <div>
-          <div style={styles.vehicleName}>{v.label}</div>
-          <div style={styles.vehicleDetail}>
-            {routeData.distance.toFixed(1)} km · ~
-            {Math.round(routeData.duration)} min
-          </div>
-        </div>
-        <div style={styles.fareAmount}>
-          GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
-        </div>
-      </div>
-
-      {/* Route */}
-      <div style={styles.routeCard}>
-        <div style={styles.routeRow}>
-          <div style={{ ...styles.routeDot, background: "#061ffa" }} />
-          <div style={styles.routeTexts}>
-            <div style={styles.routeLabel}>Pickup</div>
-            <div style={styles.routeAddress}>{pickup.address}</div>
-          </div>
-        </div>
-        <div style={styles.routeVertical} />
-        <div style={styles.routeRow}>
-          <div style={{ ...styles.routeDot, background: "#ff7300" }} />
-          <div style={styles.routeTexts}>
-            <div style={styles.routeLabel}>Destination</div>
-            <div style={styles.routeAddress}>{destination.address}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Fare breakdown */}
-      <div style={styles.fareCard}>
-        <div style={styles.fareRow}>
-          <span style={styles.fareKey}>Base Fare</span>
-          <span style={styles.fareVal}>GH₵ {fare.baseFare.toFixed(2)}</span>
-        </div>
-        <div style={styles.fareRow}>
-          <span style={styles.fareKey}>Distance Fare</span>
-          <span style={styles.fareVal}>GH₵ {fare.distanceFare.toFixed(2)}</span>
-        </div>
-        {(fare as any).surgeAmount > 0 && (
-          <div style={styles.fareRow}>
-            <span style={{ ...styles.fareKey, color: "#e65100" }}>
-              Surge Pricing
-            </span>
-            <span style={{ ...styles.fareVal, color: "#e65100" }}>
-              + GH₵ {(fare as any).surgeAmount.toFixed(2)}
-            </span>
-          </div>
-        )}
-        <div style={styles.fareDivider} />
-        <div style={styles.fareRow}>
-          <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
-            Total
-          </span>
-          <span
-            style={{
-              ...styles.fareVal,
-              fontWeight: 700,
-              color: "#061ffa",
-              fontSize: 17,
-            }}
-          >
-            GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
-          </span>
-        </div>
-      </div>
-
-      {/* Payment */}
-      <div style={styles.paymentRow}>
-        <Icon name="cash" size={20} color="#ff7300" />
-        <span style={styles.paymentLabel}>Cash</span>
-      </div>
-
-      <button
-        style={{
-          ...styles.confirmBtn,
-          ...(isLoading ? styles.btnDisabled : {}),
+    <>
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: -30, bottom: 250 }}
+        dragElastic={0.1}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        // Logic to snap back or close
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 150) {
+            // If dragged down far enough, you could hide it
+            // or just let it snap back to bottom: 70
+          }
         }}
-        onClick={onConfirm}
-        disabled={isLoading}
+        style={styles.sheet}
       >
-        {isLoading ? (
-          <>
-            <span style={styles.spinner} /> Finding a driver...
-          </>
-        ) : (
-          "Confirm Booking"
-        )}
-      </button>
-    </motion.div>
+        <div style={{ width: "100%", padding: "12px 0", cursor: "grab" }}>
+          <div style={styles.handle} />
+        </div>
+        <div style={styles.header}>
+          <button style={styles.backBtn} onClick={onBack}>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#333"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+          </button>
+          <h3 style={styles.title}>Confirm Ride</h3>
+          <div style={{ width: 36 }} />
+        </div>
+
+        {/* Vehicle */}
+        <div style={styles.vehicleRow}>
+          <div style={styles.vehicleEmoji}>
+            <Icon name={v.icon} size={26} color="#061ffa" strokeWidth={1.5} />
+          </div>
+          <div>
+            <div style={styles.vehicleName}>{v.label}</div>
+            <div style={styles.vehicleDetail}>
+              {routeData.distance.toFixed(1)} km · ~
+              {Math.round(routeData.duration)} min
+            </div>
+          </div>
+          <div style={styles.fareAmount}>
+            GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
+          </div>
+        </div>
+
+        {/* Route */}
+        <div style={styles.routeCard}>
+          <div style={styles.routeRow}>
+            <div style={{ ...styles.routeDot, background: "#061ffa" }} />
+            <div style={styles.routeTexts}>
+              <div style={styles.routeLabel}>Pickup</div>
+              <div style={styles.routeAddress}>{pickup.address}</div>
+            </div>
+          </div>
+          <div style={styles.routeVertical} />
+          <div style={styles.routeRow}>
+            <div style={{ ...styles.routeDot, background: "#ff7300" }} />
+            <div style={styles.routeTexts}>
+              <div style={styles.routeLabel}>Destination</div>
+              <div style={styles.routeAddress}>{destination.address}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fare breakdown */}
+        <div style={styles.fareCard}>
+          <div style={styles.fareRow}>
+            <span style={styles.fareKey}>Base Fare</span>
+            <span style={styles.fareVal}>GH₵ {fare.baseFare.toFixed(2)}</span>
+          </div>
+          <div style={styles.fareRow}>
+            <span style={styles.fareKey}>Distance Fare</span>
+            <span style={styles.fareVal}>
+              GH₵ {fare.distanceFare.toFixed(2)}
+            </span>
+          </div>
+          {(fare as any).surgeAmount > 0 && (
+            <div style={styles.fareRow}>
+              <span style={{ ...styles.fareKey, color: "#e65100" }}>
+                Surge Pricing
+              </span>
+              <span style={{ ...styles.fareVal, color: "#e65100" }}>
+                + GH₵ {(fare as any).surgeAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
+          <div style={styles.fareDivider} />
+          <div style={styles.fareRow}>
+            <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
+              Total
+            </span>
+            <span
+              style={{
+                ...styles.fareVal,
+                fontWeight: 700,
+                color: "#061ffa",
+                fontSize: 17,
+              }}
+            >
+              GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
+            </span>
+          </div>
+        </div>
+
+        {/* Payment */}
+        <div style={styles.paymentRow}>
+          <Icon name="cash" size={20} color="#ff7300" />
+          <span style={styles.paymentLabel}>Cash</span>
+        </div>
+      </motion.div>
+      {/* Footer confirm */}
+      <div style={styles.footer}>
+        <button
+          style={{
+            ...styles.confirmBtn,
+            ...(isLoading ? styles.btnDisabled : {}),
+          }}
+          onClick={onConfirm}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <span style={styles.spinner} /> Finding a driver...
+            </>
+          ) : (
+            "Confirm Booking"
+          )}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -325,5 +331,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "50%",
     display: "inline-block",
     animation: "spin 0.8s linear infinite",
+  },
+  footer: {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: "#fff",
+    padding: "18px 16px",
+    borderTop: "1px solid #f0f0f0",
+    flexShrink: 0,
+    paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))",
+    zIndex: 9999,
   },
 };
