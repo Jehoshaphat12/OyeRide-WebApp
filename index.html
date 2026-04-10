@@ -2,26 +2,102 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- ── Viewport & Theme ────────────────────────────────────────────── -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#061ffa" />
+    <meta name="background-color" content="#ffffff" />
+
+    <!-- ── SEO / Description ───────────────────────────────────────────── -->
+    <meta name="description" content="Book motorbike rides and deliveries instantly with OyeRide." />
+    <meta name="keywords" content="ride, motorbike, delivery, okada, Ghana, OyeRide" />
+
+    <!-- ── PWA / Installability ────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Favicon ──────────────────────────────────────────────────────── -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+
+    <!-- ── Apple / iOS ──────────────────────────────────────────────────── -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="OyeRide" />
-    <meta name="description" content="Book rides fast with OyeRide" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Splash screens for common iPhone sizes -->
+    <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
+
+    <!-- ── Open Graph (share cards) ─────────────────────────────────────── -->
+    <meta property="og:title" content="OyeRide" />
+    <meta property="og:description" content="Book motorbike rides and deliveries instantly." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+
+    <!-- ── Fonts ────────────────────────────────────────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
     <title>OyeRide</title>
+
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body, #root { height: 100%; width: 100%; }
-      body { font-family: 'Poppins', sans-serif; background: #f5f5f5; overflow: hidden; }
+      body {
+        font-family: 'Poppins', sans-serif;
+        background: #f5f5f5;
+        overflow: hidden;
+        /* Prevent pull-to-refresh interfering with the app */
+        overscroll-behavior: none;
+      }
       #root { display: flex; justify-content: center; align-items: stretch; }
+
+      /* ── Splash / loading state shown before React hydrates ── */
+      #splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 16px;
+        background: linear-gradient(160deg, #061ffa 0%, #0215be 60%, #030e8c 100%);
+        transition: opacity 0.4s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      #splash-logo {
+        font-family: 'Poppins', sans-serif;
+        font-size: 36px; font-weight: 800;
+        color: #fff; letter-spacing: -0.5px;
+      }
+      #splash-sub {
+        font-family: 'Poppins', sans-serif;
+        font-size: 11px; font-weight: 600; letter-spacing: 4px;
+        color: rgba(255,255,255,0.6); text-transform: uppercase;
+      }
+      #splash-spinner {
+        width: 28px; height: 28px; margin-top: 8px;
+        border: 3px solid rgba(255,255,255,0.2);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
+    <!-- Native-feeling splash shown before JS loads -->
+    <div id="splash">
+      <div id="splash-logo">OyeRide</div>
+      <div id="splash-sub">Passenger</div>
+      <div id="splash-spinner"></div>
+    </div>
+
     <div id="root"></div>
+
+    <script>
+      // Hide splash once React has rendered
+      window.__hideSplash = function () {
+        var s = document.getElementById('splash');
+        if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 450); }
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

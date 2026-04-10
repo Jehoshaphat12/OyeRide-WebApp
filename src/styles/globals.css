@@ -129,3 +129,9 @@ a {
 .animate-pulse { animation: pulse 1.5s ease-in-out infinite; }
 .animate-spin { animation: spin 0.8s linear infinite; }
 .animate-bounce { animation: bounce 1s ease-in-out infinite; }
+
+/* ── PWA install prompt animation ── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

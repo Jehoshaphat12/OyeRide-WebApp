@@ -7,3 +7,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
+
+// Dismiss the native-feeling splash screen once React has painted
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    (window as any).__hideSplash?.();
+  });
+});

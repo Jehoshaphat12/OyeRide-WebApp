@@ -56,6 +56,41 @@ export default function FullLocationPicker({
     }
   }, [visible]);
 
+  // Auto-fill pickup with the user's current location on initial open
+  useEffect(() => {
+    if (!visible || pickup || !userLocation) return;
+
+    // Geocoder may not be ready immediately — wait for Google Maps to init
+    const tryGeocode = () => {
+      getServices();
+      if (!geocoder) return;
+
+      geocoder.geocode(
+        { location: { lat: userLocation.lat, lng: userLocation.lng } },
+        (results: any[], status: string) => {
+          if (status === 'OK' && results[0]) {
+            setPickup({
+              latitude: userLocation.lat,
+              longitude: userLocation.lng,
+              address: results[0].formatted_address,
+            });
+          } else {
+            // Fallback to raw coordinates if geocoding fails
+            setPickup({
+              latitude: userLocation.lat,
+              longitude: userLocation.lng,
+              address: `${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`,
+            });
+          }
+        },
+      );
+    };
+
+    // Small delay to ensure Google Maps services are initialised
+    const timer = setTimeout(tryGeocode, 200);
+    return () => clearTimeout(timer);
+  }, [visible, userLocation]);
+
   const searchPlaces = useCallback((input: string) => {
     if (!input.trim() || !autoService) { 
       setPredictions([]); 
