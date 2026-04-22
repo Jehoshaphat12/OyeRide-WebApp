@@ -17,8 +17,8 @@ const CONFIG: FareConfig = {
   baseFare: 3,
   tiers: [
     { minDistance: 0,  maxDistance: 2,  ratePerKm: 3  },
-    { minDistance: 2,  maxDistance: 5,  ratePerKm: 4  },
-    { minDistance: 4,  maxDistance: 6,  ratePerKm: 8  },
+    { minDistance: 2,  maxDistance: 5,  ratePerKm: 3.5  },
+    { minDistance: 4,  maxDistance: 6,  ratePerKm: 5  },
     { minDistance: 5,  maxDistance: 15, ratePerKm: 7.5  },
     { minDistance: 15, maxDistance: 30, ratePerKm: 5 },
     { minDistance: 30,                  ratePerKm: 2.5 },
