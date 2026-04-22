@@ -17,7 +17,12 @@ import MapView from '../components/MapView';
 import NotificationToastContainer from '../components/NotificationToast';
 import NotificationBell from '../components/NotificationBell';
 import { Icon } from '../components/Icons';
+import NewUserPromoSheet from '../components/NewUserPromoSheet';
 import { motion, useAnimation } from 'framer-motion';
+
+const PROMO_DISCOUNT = 0.10; // 10%
+const PROMO_MAX_RIDES = 2;
+const PROMO_STORAGE_KEY = 'oyeride_promo_shown';
 
 const VEHICLE_ICONS: Record<string, string> = {
   motor: '/images/motor.png',
@@ -55,6 +60,9 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  const [showPromoSheet, setShowPromoSheet] = useState(false);
+  const [promoActive, setPromoActive] = useState(false);
+  const [completedRideCount, setCompletedRideCount] = useState(0);
 
   const controls = useAnimation();
 
@@ -90,7 +98,21 @@ export default function HomePage() {
   useEffect(() => {
     if (!user?.id) return;
     FirestoreService.getUserRides(user.id)
-      .then((rides) => setRecentRides(rides.slice(0, 5)))
+      .then((rides) => {
+        setRecentRides(rides.slice(0, 5));
+        // Count completed rides to determine promo eligibility
+        const completed = rides.filter((r) => r.status === 'completed').length;
+        setCompletedRideCount(completed);
+        const promoEligible = completed < PROMO_MAX_RIDES;
+        setPromoActive(promoEligible);
+        // Show promo popup once per session if eligible
+        if (promoEligible) {
+          const shownThisSession = sessionStorage.getItem(PROMO_STORAGE_KEY);
+          if (!shownThisSession) {
+            setTimeout(() => setShowPromoSheet(true), 1800);
+          }
+        }
+      })
       .catch(() => {});
     FirestoreService.getActiveRide(user.id).then((ride) => {
       if (ride) resumeRide(ride);
@@ -200,18 +222,25 @@ export default function HomePage() {
     try {
       const dist = routeData?.distance || selectedRide.totalPrice / 10;
       const dur = routeData?.duration || 15;
+      // Apply 10% promo discount for eligible new users
+      const discountMultiplier = promoActive ? (1 - PROMO_DISCOUNT) : 1;
+      const finalPrice = parseFloat((selectedRide.totalPrice * discountMultiplier).toFixed(2));
       const rideId = await RideService.requestRide(
         user.id, pickup, destination, selectedRide.type as VehicleType,
         {
-          totalPrice: selectedRide.totalPrice,
+          totalPrice: finalPrice,
           distance: dist, duration: dur,
           passengerName: user.name || 'Passenger',
           passengerPhone: user.phone || '',
+          promoDiscount: promoActive ? PROMO_DISCOUNT : 0,
+          promoLabel: promoActive ? 'New Rider 10% Off' : undefined,
         },
       );
       setActiveRideId(rideId);
       setRideState('searching');
       subscribeToRide(rideId);
+      // Mark promo as shown this session
+      sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
     } catch (e: any) {
       console.error('Booking error:', e);
       if (e?.code === 'permission-denied') alert('Permission denied. Please sign out and back in.');
@@ -427,8 +456,23 @@ export default function HomePage() {
           onConfirm={handleConfirmRide}
           onBack={() => setSelectedRide(null)}
           isLoading={isLoading}
+          promoDiscount={promoActive ? PROMO_DISCOUNT : 0}
         />
       )}
+
+      {/* ── NEW USER PROMO SHEET ── */}
+      <NewUserPromoSheet
+        visible={showPromoSheet && rideState === 'idle'}
+        onClose={() => {
+          setShowPromoSheet(false);
+          sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
+        }}
+        onBookNow={() => {
+          setShowPromoSheet(false);
+          sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
+          setLocationPickerVisible(true);
+        }}
+      />
 
       {/* ── TRACKING ── */}
       {showTracking && (

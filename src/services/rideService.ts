@@ -72,6 +72,10 @@ export class RideService {
 
     if (details.passengerPhoto) rideData.passengerPhotoUrl = details.passengerPhoto;
     if (packageInfo) rideData.packageInfo = packageInfo;
+    if (details.promoDiscount) {
+      rideData.promoDiscount = details.promoDiscount;
+      rideData.promoLabel = details.promoLabel || 'Promo';
+    }
 
     const rideId = await FirestoreService.createRide(rideData as Partial<Ride>);
 

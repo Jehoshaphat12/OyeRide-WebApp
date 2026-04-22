@@ -18,6 +18,7 @@ interface Props {
   onConfirm: () => void;
   onBack: () => void;
   isLoading: boolean;
+  promoDiscount?: number; // e.g. 0.10 for 10%
 }
 
 export default function ConfirmRideSheet({
@@ -29,8 +30,11 @@ export default function ConfirmRideSheet({
   onConfirm,
   onBack,
   isLoading,
+  promoDiscount = 0,
 }: Props) {
   const v = VEHICLE_LABELS[vehicleType];
+  const discountAmount = promoDiscount > 0 ? fare.totalFare * promoDiscount : 0;
+  const finalFare = fare.totalFare - discountAmount;
   return (
     <>
       <motion.div
@@ -83,7 +87,18 @@ export default function ConfirmRideSheet({
             </div>
           </div>
           <div style={styles.fareAmount}>
-            GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
+            {discountAmount > 0 ? (
+              <div style={{flexDirection: "column", display: "flex", alignItems: "end"}}>
+              <span style={{fontWeight: 700, fontSize: 22}}>
+                ₵ {finalFare.toFixed(2)}
+              </span>
+                <span style={{ fontWeight: 600, textDecoration: 'line-through', color: '#aaa', fontSize: 18, }}>
+                  ₵ {fare.totalFare.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              `GH₵ ${Math.round(parseFloat(fare.totalFare.toFixed(2)))}`
+            )}
           </div>
         </div>
 
@@ -128,6 +143,16 @@ export default function ConfirmRideSheet({
               </span>
             </div>
           )}
+          {discountAmount > 0 && (
+            <div style={{ ...styles.fareRow, background: '#f0fff4', borderRadius: 8, padding: '6px 8px', margin: '2px -8px' }}>
+              <span style={{ ...styles.fareKey, color: '#2e7d32', fontWeight: 700 }}>
+                🎉 New Rider 10% Off
+              </span>
+              <span style={{ ...styles.fareVal, color: '#2e7d32', fontWeight: 700 }}>
+                - GH₵ {discountAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
           <div style={styles.fareDivider} />
           <div style={styles.fareRow}>
             <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
@@ -141,7 +166,7 @@ export default function ConfirmRideSheet({
                 fontSize: 17,
               }}
             >
-              GH₵ {Math.round(parseFloat(fare.totalFare.toFixed(2)))}
+              GH₵ {finalFare.toFixed(2)}
             </span>
           </div>
         </div>

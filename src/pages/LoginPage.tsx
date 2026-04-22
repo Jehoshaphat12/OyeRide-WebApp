@@ -97,7 +97,7 @@ export default function LoginPage() {
           <div style={s.form}>
             {mode === 'register' && (
               <>
-                <InputField label="Full Name" value={name} onChange={setName} placeholder="John Doe" icon={<Icon name="profile" size={17} color="#888" />} />
+                <InputField label="Username" value={name} onChange={setName} placeholder="John Doe" icon={<Icon name="profile" size={17} color="#888" />} />
                 <InputField label="Phone Number" value={phone} onChange={setPhone} placeholder="+233 XX XXX XXXX" type="tel" icon={<Icon name="phone" size={17} color="#888" />} />
               </>
             )}

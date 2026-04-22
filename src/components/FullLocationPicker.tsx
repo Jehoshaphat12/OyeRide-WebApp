@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Icon } from './Icons';
+import { getReadableLocationName } from '@/services/geocoding';
 
 declare global { interface Window { google: any } }
 
@@ -43,11 +44,26 @@ export default function FullLocationPicker({
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [skeletonVisible, setSkeletonVisible] = useState(false);
+  const [predictionsWithDistance, setPredictionsWithDistance] = useState<any[]>([]);
 
   // Refs for auto-focusing
   const pickupRef = useRef<HTMLInputElement>(null);
   const stopRefs = useRef<(HTMLInputElement | null)[]>([]);
   const debounceRef = useRef<any>(null);
+
+
+  // Calculate Distance between user and the locations prediction
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
 
   useEffect(() => {
     if (visible) {
@@ -61,29 +77,58 @@ export default function FullLocationPicker({
     if (!visible || pickup || !userLocation) return;
 
     // Geocoder may not be ready immediately — wait for Google Maps to init
-    const tryGeocode = () => {
+    const tryGeocode = async () => {
       getServices();
       if (!geocoder) return;
 
-      geocoder.geocode(
-        { location: { lat: userLocation.lat, lng: userLocation.lng } },
-        (results: any[], status: string) => {
-          if (status === 'OK' && results[0]) {
-            setPickup({
-              latitude: userLocation.lat,
-              longitude: userLocation.lng,
-              address: results[0].formatted_address,
-            });
-          } else {
-            // Fallback to raw coordinates if geocoding fails
-            setPickup({
-              latitude: userLocation.lat,
-              longitude: userLocation.lng,
-              address: `${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`,
-            });
+       geocoder.geocode(
+    { location: { lat: userLocation.lat, lng: userLocation.lng } },
+    async (results: any[], status: string) => {
+      let address = '';
+      
+      if (status === 'OK' && results[0]) {
+        address = results[0].formatted_address;
+        
+        // If it's a Plus Code or seems too vague, try Places API
+        if (address.includes('+') || address.split(',').length < 3) {
+          try {
+            const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+            service.nearbySearch(
+              {
+                location: new window.google.maps.LatLng(userLocation.lat, userLocation.lng),
+                radius: 100,
+              },
+              (places: any[], placesStatus: string) => {
+                if (placesStatus === window.google.maps.places.PlacesServiceStatus.OK && places[0]) {
+                  address = `${places[0].name}, ${places[0].vicinity}`;
+                }
+                setPickup({
+                  latitude: userLocation.lat,
+                  longitude: userLocation.lng,
+                  address: address || `Current Location`,
+                });
+              }
+            );
+            return;
+          } catch (e) {
+            // Fall through to use geocoder result
           }
-        },
-      );
+        }
+      }
+      
+      setPickup({
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+        address: address || `Current Location`,
+      });
+    }
+  );
+      // const address = await getReadableLocationName({ latitude: userLocation.lat, longitude: userLocation.lng });
+      // setPickup({
+      //   latitude: userLocation.lat,
+      //   longitude: userLocation.lng,
+      //   address,
+      // });
     };
 
     // Small delay to ensure Google Maps services are initialised
@@ -94,6 +139,7 @@ export default function FullLocationPicker({
   const searchPlaces = useCallback((input: string) => {
     if (!input.trim() || !autoService) { 
       setPredictions([]); 
+      setPredictionsWithDistance([])
       setSkeletonVisible(false); 
       return; 
     }
@@ -107,11 +153,40 @@ export default function FullLocationPicker({
         : {};
       autoService.getPlacePredictions(
         { input, ...bias },
-        (preds: any[], status: string) => {
-          setSkeletonVisible(false);
-          setPredictions(status === 'OK' ? preds || [] : []);
-        },
-      );
+        async (preds: any[], status: string) => {
+            if (status === 'OK' && preds) {
+          // Fetch geometry for each prediction to calculate distance
+          const predsWithDist = await Promise.all(
+            preds.map(async (pred) => {
+              try {
+                const loc = await resolvePlace(pred);
+                const distance = userLocation 
+                  ? calculateDistance(
+                      userLocation.lat, 
+                      userLocation.lng, 
+                      loc.latitude, 
+                      loc.longitude
+                    )
+                  : Infinity;
+                return { ...pred, distance, location: loc };
+              } catch {
+                return { ...pred, distance: Infinity };
+              }
+            })
+          );
+          
+          // Sort by distance
+          predsWithDist.sort((a, b) => a.distance - b.distance);
+          
+          setPredictionsWithDistance(predsWithDist);
+          setPredictions(preds); // Keep original for backward compatibility
+        } else {
+          setPredictionsWithDistance([]);
+          setPredictions([]);
+        }
+        setSkeletonVisible(false);
+      },
+    );
     }, 300);
   }, [userLocation]);
 
@@ -287,7 +362,7 @@ export default function FullLocationPicker({
     </button>
   )}
           {/* Skeleton loader */}
-          {skeletonVisible && !predictions.length && (
+          {skeletonVisible && !predictionsWithDistance.length && (
             <>
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} style={s.skeletonRow}>
@@ -302,22 +377,33 @@ export default function FullLocationPicker({
           )}
 
           {/* Real predictions */}
-          {predictions.map((pred) => (
-            <button
-              key={pred.place_id}
-              style={s.predRow}
-              onClick={() => handleSelectPrediction(pred)}
-              disabled={loading}
-            >
-              <div style={s.predIcon}>
-                <Icon name="map-pin" size={18} color="#888" />
-              </div>
-              <div style={s.predTexts}>
-                <div style={s.predMain}>{pred.structured_formatting?.main_text || pred.description}</div>
-                <div style={s.predSub}>{pred.structured_formatting?.secondary_text || ''}</div>
-              </div>
-            </button>
-          ))}
+          {predictionsWithDistance.map((pred) => (
+  <button
+    key={pred.place_id}
+    style={s.predRow}
+    onClick={() => handleSelectPrediction(pred)}
+    disabled={loading}
+  >
+    <div style={s.predIcon}>
+      <Icon name="map-pin" size={18} color="#888" />
+    </div>
+    <div style={s.predTexts}>
+      <div style={s.predMain}>
+        {pred.structured_formatting?.main_text || pred.description}
+      </div>
+      <div style={s.predSub}>
+        {pred.structured_formatting?.secondary_text || ''}
+        {/* {pred.distance < Infinity && (
+          <span style={s.distanceBadge}>
+            {' • '}{pred.distance < 1 
+              ? `${(pred.distance * 1000).toFixed(0)}m` 
+              : `${pred.distance.toFixed(1)}km`}
+          </span>
+        )} */}
+      </div>
+    </div>
+  </button>
+))}
         </div>
 
         {/* Footer Confirm */}
@@ -424,4 +510,8 @@ const s: Record<string, React.CSSProperties> = {
     color: '#888',
     marginTop: 2,
   },
+  distanceBadge: {
+  color: '#061ffa',
+  fontWeight: 500,
+},
 };
