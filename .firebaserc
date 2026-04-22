@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "oyeride-b6973"
+  },
+  "targets": {
+    "oyeride-b6973": {
+      "hosting": {
+        "passenger": [
+          "oye-ride"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

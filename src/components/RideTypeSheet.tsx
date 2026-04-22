@@ -319,7 +319,7 @@ const s: Record<string, React.CSSProperties> = {
     background: "#fff",
     padding: '18px 16px', borderTop: '1px solid #f0f0f0', flexShrink: 0,
     paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))',
-    zIndex: 9999
+    zIndex: 301
   },
   confirmBtn: {
     width: '100%', padding: '16px',

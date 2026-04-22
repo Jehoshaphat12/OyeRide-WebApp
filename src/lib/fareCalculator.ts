@@ -16,12 +16,14 @@ interface FareConfig {
 const CONFIG: FareConfig = {
   baseFare: 3,
   tiers: [
-    { minDistance: 0,  maxDistance: 5,  ratePerKm: 4  },
-    { minDistance: 5,  maxDistance: 15, ratePerKm: 8  },
-    { minDistance: 15, maxDistance: 30, ratePerKm: 15 },
-    { minDistance: 30,                  ratePerKm: 20 },
+    { minDistance: 0,  maxDistance: 2,  ratePerKm: 3  },
+    { minDistance: 2,  maxDistance: 5,  ratePerKm: 4  },
+    { minDistance: 4,  maxDistance: 6,  ratePerKm: 8  },
+    { minDistance: 5,  maxDistance: 15, ratePerKm: 7.5  },
+    { minDistance: 15, maxDistance: 30, ratePerKm: 5 },
+    { minDistance: 30,                  ratePerKm: 2.5 },
   ],
-  vehicleTypeMultipliers: { motor: 0.9, delivery: 0.98, bicycle_delivery: 0.55 },
+  vehicleTypeMultipliers: { motor: 1, delivery: 0.95, bicycle_delivery: 0.65 },
 };
 
 // ─── Surge Pricing ────────────────────────────────────────────────────────────
