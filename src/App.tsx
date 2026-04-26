@@ -21,7 +21,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if(user){
       WebNotificationService.requestPermissionAndGetToken(user.id)
     }
-  })
+  }, [user])
 
   if (loading) {
     return (
