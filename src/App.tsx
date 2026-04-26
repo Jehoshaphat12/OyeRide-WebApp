@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -12,9 +12,16 @@ import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import InstallPrompt from './components/InstallPrompt';
 import './styles/globals.css';
+import { WebNotificationService } from './services/webNotificationService';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if(user){
+      WebNotificationService.requestPermissionAndGetToken(user.id)
+    }
+  })
 
   if (loading) {
     return (

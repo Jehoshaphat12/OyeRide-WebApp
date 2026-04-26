@@ -111,12 +111,7 @@ export default function NewUserPromoSheet({ visible, onBookNow, onClose }: Props
           {/* Percent badge */}
           <span style={{ fontSize: 56, fontWeight: 700, color: 'blue', fontFamily: "'Poppins',sans-serif", letterSpacing: -1 }}>10%</span>
           <span style={{ fontSize: 25, fontWeight: 700, color: '#111', fontFamily: "'Poppins',sans-serif", letterSpacing: -1 }}>OFF</span>
-          {/* <div style={{
-            position: 'absolute', top: -6, right: -6,
-            width: 28, height: 28, borderRadius: '50%', background: '#ff7300',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid white', fontSize: 14, color: 'white', fontWeight: 800,
-          }}>🎉</div> */}
+          
         </div>
           <div style={{ fontSize: 26, fontWeight: 700, color: '#111', fontFamily: "'Poppins',sans-serif", lineHeight: 1.2, marginBottom: 6 }}>
             On Your First 2 Rides!

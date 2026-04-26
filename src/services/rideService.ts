@@ -16,6 +16,7 @@ import { FirestoreService } from './firestoreService';
 import { calculateFare } from '../lib/fareCalculator';
 import { VehicleType, Ride, Driver, User } from '../types';
 import { useEffect } from 'react';
+import { addNotification } from './notifications';
 
 // Initialize Functions (Matching your mobile region)
 const functions = getFunctions(app, "europe-west1");
@@ -85,49 +86,62 @@ export class RideService {
     return rideId;
   }
 
-  /**
- * Notify all admin users about a new ride request
- */
-static async notifyAdminsOfNewRide(rideId: string, rideData: Partial<Ride>): Promise<void> {
-  try {
-    // 1. Fetch all admin users
-    const adminUsers = await FirestoreService.getAdminUsers(); // or your own query
-    if (adminUsers.length === 0) return;
+    /**
+   * Notify all admin users about a new ride request
+   */
+  static async notifyAdminsOfNewRide(rideId: string, rideData: Partial<Ride>): Promise<void> {
+    try {
+      // 1. Fetch admin users
+      const adminUsers = await FirestoreService.getAdminUsers();
+      if (adminUsers.length === 0) return;
 
-    // 2. Prepare notification content
-    const pickupAddress = rideData.pickup?.address?.split(",")[0] || "Unknown location";
-    const passengerName = rideData.passengerName || "A passenger";
-    const title = "🆕 New Ride Request";
-    const body = `${passengerName} requested a ride from ${pickupAddress}`;
+      // 2. Prepare notification text
+      const pickupAddress = rideData.pickup?.address?.split(",")[0] || "Unknown location";
+      const passengerName = rideData.passengerName || "A passenger";
+      const title = "🆕 New Ride Request";
+      const body = `${passengerName} requested a ride from ${pickupAddress}`;
 
-    // 3. Send in‑app notifications (and optionally push)
-    for (const admin of adminUsers) {
+      // 3. In-app notifications – create for every admin
+      await Promise.allSettled(
+        adminUsers.map((admin: any) =>
+          addNotification(
+            admin.id,
+            "ride_request",
+            title,
+            body,
+            rideId,
+            "/admin/rides"               // screen to navigate to
+          )
+        )
+      );
 
-      if (admin.fcmToken) {
-        // You can use your existing push function
-       const notifyNearby = httpsCallable(functions, "notifyNearbyDrivers");
-        
+      // 4. Push notifications – collect valid FCM tokens
+      const validTokens = adminUsers
+        .map((a: any) => a.fcmToken)
+        .filter((t: any) => t && typeof t === "string" && t.trim() !== "");
+
+      if (validTokens.length > 0) {
+        const notifyNearby = httpsCallable(functions, "notifyNearbyDrivers");
         await notifyNearby({
-          tokens: admin.fcmToken,
+          tokens: validTokens,
           notification: {
-            title: "New Ride Request 🚖",
-            body: "A passenger nearby needs a ride",
+            title,
+            body,
           },
           extraData: {
-            rideId: rideId,
-            screen: "/admin/rides", 
-            type: "admin_ride_notification"
+            rideId,
+            screen: "/admin/rides",
+            type: "admin_ride_notification",
           },
         });
       }
-    }
 
-    console.log(`✅ Notified ${adminUsers.length} admin(s) about ride ${rideId}`);
-  } catch (error) {
-    console.error("Failed to notify admins:", error);
-    // Don't throw – we don't want to break the ride creation flow
+      console.log(`✅ Notified ${adminUsers.length} admin(s) about ride ${rideId}`);
+    } catch (error) {
+      // Never let admin notification errors break ride creation
+      console.warn("Failed to notify admins (non-critical):", error);
+    }
   }
-}
 
   /**
    * Find nearby drivers using geohash

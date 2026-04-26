@@ -84,7 +84,7 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
     return [
       { id: '1', type: 'motor' as VehicleType,            title: 'Oye Motor',    image: '/images/motor.png',            disabled: false },
       { id: '2', type: 'delivery' as VehicleType,         title: 'Oye Delivery', image: '/images/box.png',              disabled: false },
-      { id: '3', type: 'bicycle_delivery' as VehicleType, title: 'Oye Bicycle',  image: '/images/bicycle_delivery.png', disabled: false },
+      { id: '3', type: 'bicycle_delivery' as VehicleType, title: 'Oye Bicycle Delivery',  image: '/images/bicycle_delivery.png', disabled: false },
     ].map((r) => {
       const surge = surgeInfo.multiplier;
       const fare = calculateFare(routeData.distance, r.type, surge);

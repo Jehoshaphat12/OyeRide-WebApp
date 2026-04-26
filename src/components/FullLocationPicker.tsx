@@ -204,6 +204,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
           setPickup(loc);
           setActiveField({ type: 'stop', index: 0 });
           setPredictions([]);
+          setPredictionsWithDistance([])
           // setQuery('');
         }
       },
@@ -231,6 +232,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
     try {
       const loc = await resolvePlace(pred);
       setPredictions([]);
+      setPredictionsWithDistance([])
 
       if (activeField.type === 'pickup') {
         setPickup(loc);
