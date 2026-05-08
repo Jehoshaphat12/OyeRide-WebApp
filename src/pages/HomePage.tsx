@@ -280,6 +280,11 @@ export default function HomePage() {
         onRouteReady={handleRouteReady}
         showRoute={!!pickup && !!destination}
         travelMode='BICYCLING'
+        trackingMode={
+          rideState === 'driver_assigned' ? 'to_pickup' :
+          rideState === 'en_route' ? 'to_destination' :
+          null
+        }
       />
 
       {/* Toast notifications */}

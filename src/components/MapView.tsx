@@ -16,7 +16,9 @@ interface MapViewProps {
   driverLocation?: { lat: number; lng: number };
   onRouteReady?: (distance: number, duration: number) => void;
   showRoute?: boolean;
-  travelMode: "BICYCLING"
+  travelMode: "BICYCLING";
+  /** 'to_pickup' = driver heading to passenger. 'to_destination' = ride in progress. */
+  trackingMode?: 'to_pickup' | 'to_destination' | null;
 }
 
 let mapsLoaded = false;
@@ -48,6 +50,7 @@ export default function MapView({
   onRouteReady,
   showRoute,
   travelMode,
+  trackingMode,
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -57,7 +60,10 @@ export default function MapView({
   const driverMarkerRef = useRef<any>(null);
   const directionsRendererRef = useRef<any>(null);
   const directionsServiceRef = useRef<any>(null);
+  // Second renderer exclusively for driver → pickup/destination route
+  const driverRouteRendererRef = useRef<any>(null);
   const routeDrawnRef = useRef<string>('');
+  const driverRouteKeyRef = useRef<string>('');
 
   const initMap = useCallback(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -87,6 +93,22 @@ export default function MapView({
       },
     });
     directionsRendererRef.current.setMap(mapInstanceRef.current);
+
+    // Driver route renderer — orange dashed line from driver to pickup/destination
+    driverRouteRendererRef.current = new window.google.maps.DirectionsRenderer({
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#ff7300',
+        strokeWeight: 4,
+        strokeOpacity: 0.9,
+        icons: [{
+          icon: { path: window.google.maps.SymbolPath.FORWARD_OPEN_ARROW, scale: 2.5, strokeColor: '#ff7300' },
+          offset: '100%',
+          repeat: '60px',
+        }],
+      },
+    });
+    driverRouteRendererRef.current.setMap(mapInstanceRef.current);
   }, [userLocation]);
 
   useEffect(() => {
@@ -230,6 +252,55 @@ export default function MapView({
       driverMarkerRef.current = null;
     }
   }, [driverLocation]);
+
+  // Driver route — draws a live orange line from driver to pickup (driver_assigned)
+  // or driver to destination (en_route). Redraws whenever driver moves.
+  useEffect(() => {
+    if (
+      !mapInstanceRef.current ||
+      !directionsServiceRef.current ||
+      !driverRouteRendererRef.current ||
+      !driverLocation ||
+      !trackingMode
+    ) {
+      // Clear driver route if no tracking active
+      if (driverRouteRendererRef.current) {
+        try { driverRouteRendererRef.current.setDirections({ routes: [] }); } catch {}
+      }
+      driverRouteKeyRef.current = '';
+      return;
+    }
+
+    const target = trackingMode === 'to_pickup' ? pickup : destination;
+    if (!target) return;
+
+    const routeKey = `${driverLocation.lat.toFixed(4)},${driverLocation.lng.toFixed(4)}-${target.latitude},${target.longitude}-${trackingMode}`;
+    // Debounce — only redraw if driver moved more than ~30m
+    if (routeKey === driverRouteKeyRef.current) return;
+    driverRouteKeyRef.current = routeKey;
+
+    directionsServiceRef.current.route(
+      {
+        origin: driverLocation,
+        destination: { lat: target.latitude, lng: target.longitude },
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result: any, status: any) => {
+        if (status === 'OK' && driverRouteRendererRef.current) {
+          driverRouteRendererRef.current.setDirections(result);
+
+          // Fit map to show driver + target + pickup
+          const bounds = new window.google.maps.LatLngBounds();
+          bounds.extend(driverLocation);
+          bounds.extend({ lat: target.latitude, lng: target.longitude });
+          if (pickup && trackingMode === 'to_destination') {
+            bounds.extend({ lat: pickup.latitude, lng: pickup.longitude });
+          }
+          mapInstanceRef.current.fitBounds(bounds, { top: 100, bottom: 380, left: 40, right: 40 });
+        }
+      },
+    );
+  }, [driverLocation, trackingMode, pickup, destination]);
 
   return (
     <div ref={mapRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />

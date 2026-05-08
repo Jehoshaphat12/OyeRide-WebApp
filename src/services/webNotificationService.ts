@@ -55,41 +55,42 @@ export class WebNotificationService {
   static async requestPermissionAndGetToken(userId: string): Promise<string | null> {
     try {
       const supported = await this.isMessagingSupported();
-      if (!supported) {
-        console.log('FCM not supported in this browser');
-        return null;
-      }
+      if (!supported) return null;
 
-      // Request permission
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('Notification permission denied');
-        return null;
-      }
+      if (permission !== 'granted') return null;
 
-      // Register service worker
+      // Register service worker and wait for it to be active
       let swRegistration: ServiceWorkerRegistration | undefined;
       if ('serviceWorker' in navigator) {
         swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('Service worker registered:', swRegistration);
+        // Wait until the SW is active before calling getToken — critical fix
+        await navigator.serviceWorker.ready;
       }
 
       const messaging = getMessaging(app);
       this.messagingInstance = messaging;
 
-      // Get FCM token
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: swRegistration,
       });
 
       if (token) {
-        // console.log('FCM Token:', token);
-        // Save to Firestore so the driver-side backend can send notifications to this passenger
-        await FirestoreService.updateUser(userId, {
-          fcmToken: token,
-          tokenUpdatedAt: new Date(),
-        } as any);
+        // Only write to Firestore if the token has actually changed — avoids
+        // unnecessary writes on every page load when nothing changed
+        const userSnap = await import('firebase/firestore').then(({ getDoc, doc }) =>
+          getDoc(doc(firestore, 'users', userId))
+        );
+        const existingToken = userSnap.exists() ? userSnap.data()?.webFcmToken : null;
+
+        if (token !== existingToken) {
+          await FirestoreService.updateUser(userId, {
+            fcmToken: token,
+            webFcmToken: token,
+            tokenUpdatedAt: new Date(),
+          } as any);
+        }
         return token;
       }
 
@@ -132,6 +133,7 @@ export class WebNotificationService {
     try {
       await FirestoreService.updateUser(userId, {
         fcmToken: null,
+        webFcmToken: null,   // clear both so stale tokens don't pile up
         tokenUpdatedAt: new Date(),
       } as any);
     } catch (error) {

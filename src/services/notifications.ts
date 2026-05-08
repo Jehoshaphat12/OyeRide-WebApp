@@ -30,14 +30,21 @@ export async function addNotification(
 
   // Fetch user's fcmToken from Firestore
   const userDoc: any = await getDoc(doc(firestore, "users", userId));
-  const token = userDoc.exists() ? userDoc.data().fcmToken : null;
+  const mobileToken = userDoc.exists() ? userDoc.data().fcmToken : null;
+  const webToken = userDoc.data()?.webFcmToken;
+
+  const tokens = [mobileToken, webToken].filter(
+  (t) => t && typeof t === 'string' && t.trim() !== ''
+);
 
   // Send push notification if token exists
-  if (token) {
-    await sendPushNotification(token, title, body, {
-      rideId: rideId || "", // Ensure it's an empty string, not undefined
-      screen: screen || "",
-    });
+  if (tokens.length > 0) {
+    for (const token of tokens) {
+      await sendPushNotification(token, title, body, {
+        rideId: rideId || "", // Ensure it's an empty string, not undefined
+        screen: screen || "",
+      });
+    }
   }
 
   await firestoreWritePromise;

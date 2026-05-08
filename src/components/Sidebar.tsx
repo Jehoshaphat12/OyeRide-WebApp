@@ -5,7 +5,7 @@ import { Icon, IconName } from './Icons';
 
 interface Props { open: boolean; onClose: () => void; }
 
-const APK_DIRECT_URL = 'https://github.com/Jehoshaphat12/OyeRide-WebApp/releases/download/v1.0.0-beta/application-0a088757-db6c-4e98-b2c9-3f80703c0ac8.apk'; // optional: direct APK download URL before Play Store listing
+const APK_DIRECT_URL = 'https://github.com/Jehoshaphat12/OyeRide-WebApp/releases/download/v1.0.0-beta/application-50595db0-232f-45ec-a760-effc9f71e0d0.apk'; // optional: direct APK download URL before Play Store listing
 
 const MENU_ITEMS: { icon: IconName; label: string; path: string }[] = [
   { icon: 'home',     label: 'Home',        path: '/' },
