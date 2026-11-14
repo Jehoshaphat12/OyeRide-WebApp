@@ -18,7 +18,13 @@ export type IconName =
   | 'cancel' | 'refresh' | 'upload'
   | 'package' | 'package-check'
   | 'rating-empty' | 'rating-fill'
-  | 'distance' | 'speed';
+  | 'distance' | 'speed'
+  // ── New icons for the web components ──
+  | 'map' | 'location-outline' | 'close-circle'
+  | 'business' | 'time' | 'chevron-forward'
+  | 'map-outline' | 'flame' | 'flame-outline'
+  | 'checkmark-circle' | 'cube-outline';
+
 
 interface IconProps {
   name: IconName;
@@ -200,6 +206,106 @@ export function Icon({ name, size = 24, color = 'currentColor', style, strokeWid
       return <svg {...props}><path d="M3 3h18"/><path d="M3 21h18"/><path d="M12 3v18"/><path d="M6 9l-3-6"/><path d="M18 9l3-6"/><path d="M6 15l-3 6"/><path d="M18 15l3 6"/></svg>;
     case 'speed':
       return <svg {...props}><path d="M12 12m-1 0a1 1 0 1 0 2 0 1 1 0 1 0-2 0"/><path d="M20.2 8a9 9 0 1 0 1.8 4"/><path d="M12 12l4.3-4.3"/></svg>;
+    // ── New additions ───────────────────────────────────────────────────────
+    case 'map':
+      return (
+        <svg {...props}>
+          <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4Z" />
+          <path d="M8 2v16" />
+          <path d="M16 6v16" />
+        </svg>
+      );
+
+    case 'location-outline':
+      return (
+        <svg {...props}>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+          <circle cx="12" cy="9" r="2.5" />
+        </svg>
+      );
+
+    case 'close-circle':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="m15 9-6 6" />
+          <path d="m9 9 6 6" />
+        </svg>
+      );
+
+    case 'business':
+      return (
+        <svg {...props}>
+          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+          <path d="M10 6h4" />
+          <path d="M10 10h4" />
+          <path d="M10 14h4" />
+          <path d="M10 18h4" />
+        </svg>
+      );
+
+    case 'time':
+      // identical to 'clock'
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+
+    case 'chevron-forward':
+      return (
+        <svg {...props}>
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      );
+
+    case 'map-outline':
+      // identical to 'map'
+      return (
+        <svg {...props}>
+          <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4Z" />
+          <path d="M8 2v16" />
+          <path d="M16 6v16" />
+        </svg>
+      );
+
+    case 'flame':
+      return (
+        <svg {...props}>
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        </svg>
+      );
+
+    case 'flame-outline':
+      // same as 'flame' — already stroke‑only
+      return (
+        <svg {...props}>
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        </svg>
+      );
+
+    case 'checkmark-circle':
+      // identical to 'check-circle'
+      return (
+        <svg {...props}>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+
+    case 'cube-outline':
+      return (
+        <svg {...props}>
+          <path d="m21 16-7 4-7-4V8l7-4 7 4v8z" />
+          <path d="M3 8.27 10 4v12" />
+          <path d="M14 4.27 21 8v8" />
+          <path d="M14 16.27 7 20v-12" />
+          <path d="M21 8.27 14 4v12" />
+        </svg>
+      );
 
     default:
       return <svg {...props}><circle cx="12" cy="12" r="10"/></svg>;

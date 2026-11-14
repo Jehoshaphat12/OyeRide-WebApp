@@ -11,6 +11,7 @@ export interface RideOption {
   title: string;
   image: string;
   totalPrice: number;
+  discountedPrice: number | null;
   eta: string;
   nearbyDrivers: number;
   disabled: boolean;
@@ -24,6 +25,7 @@ interface Props {
   onSelect: (ride: RideOption) => void;
   onCancel: () => void;
   onEditLocations: () => void;
+  promoActive?: boolean;
 }
 
 async function fetchDriverCount(lat: number, lng: number, type: VehicleType): Promise<number> {
@@ -59,9 +61,9 @@ async function fetchActiveRequestCount(): Promise<number> {
   } catch { return 0; }
 }
 
-export default function RideTypeSheet({ routeData, pickup, destination, onSelect, onCancel, onEditLocations }: Props) {
+export default function RideTypeSheet({ routeData, pickup, destination, onSelect, onCancel, onEditLocations, promoActive = false }: Props) {
   const [selectedId, setSelectedId] = useState('1');
-  const [driverCounts, setDriverCounts] = useState({ motor: 0, delivery: 0, bicycle_delivery: 0 });
+  const [driverCounts, setDriverCounts] = useState<Record<VehicleType, number>>({ motor: 0, delivery: 0, bicycle_delivery: 0, gas_refill: 0 } as Record<VehicleType, number>);
   const [countsLoading, setCountsLoading] = useState(false);
   const [surgeInfo, setSurgeInfo] = useState<SurgeInfo>({ multiplier: 1, reason: 'Normal pricing', label: 'Normal', isActive: false });
 
@@ -74,7 +76,7 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
       fetchDriverCount(pickup.latitude, pickup.longitude, 'bicycle_delivery'),
       fetchActiveRequestCount(),
     ]).then(([motor, delivery, bicycle, requests]) => {
-      setDriverCounts({ motor, delivery, bicycle_delivery: bicycle });
+      setDriverCounts({ motor, delivery, bicycle_delivery: bicycle, gas_refill: 0 });
       setSurgeInfo(calculateSurgeMultiplier(motor, requests, true));
     }).catch(() => {}).finally(() => setCountsLoading(false));
   }, [pickup?.latitude, pickup?.longitude]);
@@ -88,17 +90,18 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
     ].map((r) => {
       const surge = surgeInfo.multiplier;
       const fare = calculateFare(routeData.distance, r.type, surge);
-      const speedFactor: Record<string, number> = { motor: 1.2, delivery: 0.9, bicycle_delivery: 2.2 };
+      const speedFactor: Record<VehicleType, number> = { motor: 1.2, delivery: 0.9, bicycle_delivery: 2.2 } as Record<VehicleType, number>;
       const etaMins = Math.max(2, Math.round((routeData.duration / 60) * (speedFactor[r.type] || 1)));
       return {
         ...r,
         totalPrice: fare.totalFare,
+         discountedPrice: promoActive ? parseFloat((fare.totalFare * 0.9).toFixed(2)) : null,
         eta: `${etaMins} mins`,
         nearbyDrivers: driverCounts[r.type] ?? 0,
         surgeInfo: surgeInfo,
       };
     });
-  }, [routeData, driverCounts, surgeInfo]);
+  }, [routeData, driverCounts, surgeInfo, promoActive]);
 
   const selected = rides.find((r) => r.id === selectedId);
 
@@ -212,17 +215,25 @@ export default function RideTypeSheet({ routeData, pickup, destination, onSelect
                 </div>
               </div>
               <div style={s.priceWrap}>
-                <span style={{ ...s.price, ...(isSelected ? { color: '#061ffa' } : {}) }}>
-                  GHS {Math.round(ride.totalPrice)}
-                </span>
-                {surgeInfo.isActive && (
-                  <span style={s.surgeTag}>{surgeInfo.label}</span>
-                )}
-                {isSelected && (
-                  <div style={s.selectedCheck}>
-                    <Icon name="check" size={12} color="white" strokeWidth={3} />
-                  </div>
-                )}
+                {ride.discountedPrice ? (
+    <>
+      <span style={s.originalPrice}>GHS {Math.round(ride.totalPrice)}</span>
+      <span style={{ ...s.price, ...(isSelected ? { color: '#061ffa' } : {}) }}>
+        GHS {Math.round(ride.discountedPrice)}
+      </span>
+      {/* <span style={s.promoTag}>10% OFF</span> */}
+    </>
+  ) : (
+    <span style={{ ...s.price, ...(isSelected ? { color: '#061ffa' } : {}) }}>
+      GHS {Math.round(ride.totalPrice)}
+    </span>
+  )}
+  {surgeInfo.isActive && <span style={s.surgeTag}>{surgeInfo.label}</span>}
+  {/* {isSelected && (
+    <div style={s.selectedCheck}>
+      <Icon name="check" size={12} color="white" strokeWidth={3} />
+    </div>
+  )} */}
               </div>
             </button>
           );
@@ -329,4 +340,12 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: 0.5, boxShadow: '0 4px 20px rgba(6,31,250,0.4)',
   },
   confirmDisabled: { background: '#ccc', boxShadow: 'none', cursor: 'not-allowed' },
+  originalPrice: {
+  fontSize: 12, color: '#aaa', textDecoration: 'line-through',
+  fontFamily: "'Poppins', sans-serif",
+},
+promoTag: {
+  fontSize: 10, fontWeight: 700, color: '#2e7d32', background: '#e8f5e9',
+  padding: '2px 6px', borderRadius: 6,
+},
 };

@@ -6,6 +6,8 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
   User as FirebaseUser,
+  sendEmailVerification,
+  reload,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, firestore } from '../lib/firebase';
@@ -19,6 +21,7 @@ export class AuthService {
     phone: string,
   ): Promise<User> {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(userCredential.user);
     await updateProfile(userCredential.user, { displayName: name });
 
     const user: User = {
@@ -59,6 +62,17 @@ export class AuthService {
 
   static async resetPassword(email: string): Promise<void> {
     await sendPasswordResetEmail(auth, email);
+  }
+
+   static async sendVerificationEmail(): Promise<void> {
+    if (!auth.currentUser) throw new Error("No user is signed in");
+    await sendEmailVerification(auth.currentUser);
+  }
+
+  static async isEmailVerified(): Promise<boolean> {
+    if (!auth.currentUser) return false;
+    await reload(auth.currentUser); // pulls fresh verified status from Firebase
+    return auth.currentUser.emailVerified;
   }
 
   static onAuthStateChanged(callback: (user: FirebaseUser | null) => void): () => void {

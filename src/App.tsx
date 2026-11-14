@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
@@ -13,17 +13,29 @@ import ChatPage from './pages/ChatPage';
 import InstallPrompt from './components/InstallPrompt';
 import './styles/globals.css';
 import { WebNotificationService } from './services/webNotificationService';
+import { loadPricingConfig } from './services/pricingConfig';
+import VerifyEmail from './pages/verifyEmail';
+import { AuthService } from './services/authService';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const [verified, setVerified] = useState<boolean | null>(null)
+
+  
 
   useEffect(() => {
-    if(user){
-      WebNotificationService.requestPermissionAndGetToken(user.id)
+     if (user) {
+      WebNotificationService.requestPermissionAndGetToken(user.id);
+      AuthService.isEmailVerified().then(setVerified);
+    } else {
+      setVerified(null);
     }
   }, [user])
 
-  if (loading) {
+ 
+
+  if (loading || (user && verified === null)) {
     return (
       <div style={splashStyles.screen}>
         <div style={splashStyles.logoBox}>
@@ -43,7 +55,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
+   if (!user) return <Navigate to="/login" replace />;
+
+  // if (!verified && location.pathname !== '/verify-email') {
+  //   return <Navigate to="/verify-email" replace />;
+  // }
+
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -53,11 +71,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+   useEffect(() => {
+    loadPricingConfig().catch((err) =>
+      console.warn("[Pricing] Failed to load config, using defaults:", err),
+    );
+  }, []);
   return (
     <div className="app-shell">
       <InstallPrompt />
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/verify-email" element={<ProtectedRoute><VerifyEmail /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

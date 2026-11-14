@@ -19,6 +19,10 @@ import NotificationBell from '../components/NotificationBell';
 import { Icon } from '../components/Icons';
 import NewUserPromoSheet from '../components/NewUserPromoSheet';
 import { motion, useAnimation } from 'framer-motion';
+import GasRefillSheet from '@/components/GasRefillSheet';
+import { doc } from 'firebase/firestore';
+import { firestore } from '../lib/firebase';
+import { sanitizeLocation } from '@/components/SanitizeLocation';
 
 const PROMO_DISCOUNT = 0.10; // 10%
 const PROMO_MAX_RIDES = 2;
@@ -63,6 +67,9 @@ export default function HomePage() {
   const [showPromoSheet, setShowPromoSheet] = useState(false);
   const [promoActive, setPromoActive] = useState(false);
   const [completedRideCount, setCompletedRideCount] = useState(0);
+
+  const [gasRefillVisible, setGasRefillVisible] = useState(false);
+  const [gasBookingData, setGasBookingData] = useState<any>(null);
 
   const controls = useAnimation();
 
@@ -181,8 +188,11 @@ export default function HomePage() {
       } else if (ride.status === 'completed') {
         setRideState('completed');
         rideUnsubRef.current?.(); setDriverLocation(undefined);
-      } else if (ride.status === 'cancelled') {
+      } else if (ride.status === 'cancelled' &&  ride.cancelledBy === "driver") {
         alert('Your ride was cancelled by the driver.');
+        resetRide();
+      } else if (ride.status === 'cancelled' &&  ride.cancelledBy === "passenger") {
+        alert('You have cancelled your ride.');
         resetRide();
       }
     });
@@ -201,12 +211,17 @@ export default function HomePage() {
   }, []);
 
   // ── Location picker confirm ─────────────────────────────────────────────────
-  const handleLocationConfirm = (pickupLoc: LocationPoint, newStops: LocationPoint[]) => {
-    setPickup(pickupLoc);
-    setStops(newStops);
-    setDestination(newStops[newStops.length - 1]);
-    setLocationPickerVisible(false);
-    setRideState('confirming');
+  const handleLocationConfirm = async (pickupLoc: LocationPoint, newStops: LocationPoint[]) => {
+
+ // Sanitize pickup and all stops
+  const sanitizedPickup = await sanitizeLocation(pickupLoc);
+  const sanitizedStops = await Promise.all(newStops.map(s => sanitizeLocation(s)));
+
+     setPickup(sanitizedPickup);
+  setStops(sanitizedStops);
+  setDestination(sanitizedStops[sanitizedStops.length - 1]);
+  setLocationPickerVisible(false);
+  setRideState('confirming');
   };
 
   // ── Ride type selected ──────────────────────────────────────────────────────
@@ -217,50 +232,129 @@ export default function HomePage() {
 
   // ── Confirm booking ─────────────────────────────────────────────────────────
   const handleConfirmRide = async () => {
-    if (!user || !pickup || !destination || !selectedRide) return;
-    setIsLoading(true);
-    try {
-      const dist = routeData?.distance || selectedRide.totalPrice / 10;
-      const dur = routeData?.duration || 15;
-      // Apply 10% promo discount for eligible new users
-      const discountMultiplier = promoActive ? (1 - PROMO_DISCOUNT) : 1;
-      const finalPrice = parseFloat((selectedRide.totalPrice * discountMultiplier).toFixed(2));
-      const rideId = await RideService.requestRide(
-        user.id, pickup, destination, selectedRide.type as VehicleType,
-        {
-          totalPrice: finalPrice,
-          distance: dist, duration: dur,
-          passengerName: user.name || 'Passenger',
-          passengerPhone: user.phone || '',
-          promoDiscount: promoActive ? PROMO_DISCOUNT : 0,
-          promoLabel: promoActive ? 'New Rider 10% Off' : undefined,
-        },
-      );
-      setActiveRideId(rideId);
-      setRideState('searching');
-      subscribeToRide(rideId);
-      // Mark promo as shown this session
-      sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
-    } catch (e: any) {
-      console.error('Booking error:', e);
-      if (e?.code === 'permission-denied') alert('Permission denied. Please sign out and back in.');
-      else alert(`Booking failed: ${e?.message || 'Unknown error'}`);
-    } finally { setIsLoading(false); }
-  };
+  if (!user || !pickup || !destination || !selectedRide) return;
+  setIsLoading(true);
+  try {
+
+    // Sanitize pickup and all stops (including destination)
+    const sanitizedPickup = await sanitizeLocation(pickup);
+    const sanitizedStops = await Promise.all(stops.map(s => sanitizeLocation(s)));
+    const sanitizedDestination = await sanitizeLocation(destination);
+
+    // Update state (optional – improves UI consistency)
+    setPickup(sanitizedPickup);
+    setStops(sanitizedStops);
+    setDestination(sanitizedDestination);
+
+
+    const discountMultiplier = promoActive ? (1 - PROMO_DISCOUNT) : 1;
+
+    const finalPrice = gasBookingData
+      ? gasBookingData.totalFare   // already includes the two legs + fees
+      : parseFloat((selectedRide.totalPrice * discountMultiplier).toFixed(2));
+
+    const dist = gasBookingData
+      ? gasBookingData.distanceToStation + gasBookingData.distanceBack
+      : routeData?.distance || 0;
+
+    const dur = routeData?.duration || 15;
+
+    // Destinations: for gas refill use stops; for normal ride use [destination]
+     // Build final destinations array from sanitized stops
+    const finalDestinations = gasBookingData
+      ? sanitizedStops.map(s => ({ latitude: s.latitude, longitude: s.longitude, address: s.address }))
+      : [{ latitude: sanitizedDestination.latitude, longitude: sanitizedDestination.longitude, address: sanitizedDestination.address }];
+
+    const rideId = await RideService.requestRide(
+      user.id,
+      sanitizedPickup,
+      finalDestinations,             // ← now an array
+      selectedRide.type as VehicleType,
+      {
+        totalPrice: finalPrice,
+        distance: dist,
+        duration: dur,
+        passengerName: user.name || 'Passenger',
+        passengerPhone: user.phone || '',
+        promoDiscount: promoActive && !gasBookingData ? PROMO_DISCOUNT : 0,
+        promoLabel: promoActive && !gasBookingData ? 'New Rider 10% Off' : undefined,
+        // Gas refill metadata
+        ...(gasBookingData ? {
+          stationName: gasBookingData.station.name,
+          stationAddress: gasBookingData.station.vicinity,
+          stationLatitude: gasBookingData.station.latitude,
+          stationLongitude: gasBookingData.station.longitude,
+          cylinderSize: gasBookingData.cylinderSize,
+          waitingFee: gasBookingData.fareBreakdown.find((b:any) => b.description.includes('Waiting'))?.amount ?? 5,
+          serviceFee: gasBookingData.fareBreakdown.find((b:any) => b.description.includes('cylinder'))?.amount ?? 2,
+          phase: 'heading_to_user',
+        } : {}),
+      },
+    );
+
+    setActiveRideId(rideId);
+    setRideState('searching');
+    subscribeToRide(rideId);
+    sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
+    setGasBookingData(null);   // clean up
+  } catch (e: any) {
+    console.error('Booking error:', e);
+    alert(`Booking failed: ${e?.message || 'Unknown error'}`);
+  } finally { setIsLoading(false); }
+};
 
   const handleCancelRide = async () => {
     if (activeRideId) await FirestoreService.cancelRide(activeRideId).catch(() => {});
     resetRide(); setCancelModalOpen(false);
+
+    setGasBookingData(null);
+setGasRefillVisible(false);
   };
 
   const handleRouteReady = useCallback((dist: number, dur: number) => {
     setRouteData({ distance: dist, duration: dur });
   }, []);
 
-  const handleRatingSubmit = async (rating: number, feedback: string, tags: string[]) => {
-    if (activeRideId) await FirestoreService.submitRating(activeRideId, rating, feedback, tags).catch(() => {});
+ const handleRatingSubmit = async (rating: number, feedback: string, tags: string[]) => {
+  // Validation (activeRideId, driverId, rating range) …
+  if (!activeRideId) throw new Error('No active ride');
+  if (!currentRide?.driverId) throw new Error('No driver');
+
+  try {
+    // 1. Record the ride rating (outside transaction – optional but safer)
+    await FirestoreService.submitRating(activeRideId, rating, feedback, tags);
+
+    // 2. Atomically update driver and user documents
+    await FirestoreService.runTransaction(async (transaction) => {
+      const driverRef = doc(firestore, 'drivers', currentRide.driverId!);
+      const userRef = doc(firestore, 'users', currentRide.driverId!);
+
+      const driverSnap = await transaction.get(driverRef);
+      if (!driverSnap.exists()) throw new Error('Driver not found');
+
+      const driverData = driverSnap.data();
+      const currentRating = driverData?.rating ?? 0;
+      const totalRatings = driverData?.totalRatings ?? 0;
+      const newTotal = totalRatings + 1;
+      const newAvg = (currentRating * totalRatings + rating) / newTotal;
+      const rounded = parseFloat(newAvg.toFixed(1));
+
+      transaction.update(driverRef, {
+        rating: rounded,
+        totalRatings: newTotal,
+      });
+      transaction.update(userRef, {
+        rating: rounded,
+        // totalRatings: newTotal, // uncomment if needed
+      });
+    });
+
     resetRide();
-  };
+  } catch (error) {
+    console.error('Rating submission failed:', error);
+    throw error; // let UI handle retry
+  }
+};
 
   const isActiveRide = ['searching', 'driver_assigned', 'en_route'].includes(rideState);
   const showBottomSheet = rideState === 'idle';
@@ -268,6 +362,60 @@ export default function HomePage() {
   const showConfirm = rideState === 'confirming' && !!selectedRide;
   const showTracking = isActiveRide;
   const showCompleted = rideState === 'completed';
+
+  const handleGasRefillConfirm = async (bookingData: any) => {
+  const effectivePickup = pickup ??
+    (userLocation ? {
+      latitude: userLocation.lat,
+      longitude: userLocation.lng,
+      address: 'Current Location',
+    } : null);
+
+  if (!effectivePickup) {
+    alert('Could not determine your location. Please wait or set a pickup address.');
+    return;
+  }
+
+  // Sanitize all three location points
+  const sanitizedPickup = await sanitizeLocation(effectivePickup);
+
+  const stationStop = {
+    latitude: bookingData.station.latitude,
+    longitude: bookingData.station.longitude,
+    address: bookingData.station.name,
+  };
+  const returnStop = {
+    latitude: effectivePickup.latitude,
+    longitude: effectivePickup.longitude,
+    address: effectivePickup.address,
+  };
+
+  const sanitizedStation = await sanitizeLocation(stationStop);
+  const sanitizedReturn = await sanitizeLocation(returnStop);
+
+  setPickup(sanitizedPickup);
+  setStops([sanitizedStation, sanitizedReturn]);
+  setDestination(sanitizedReturn);
+
+  const rideOption = {
+    id: '5',
+    slug: 'gas_refill',
+    type: 'motor' as VehicleType,
+    title: 'Gas Refill',
+    image: '/images/motor.png',
+    totalPrice: bookingData.totalFare,
+    discountedPrice: bookingData.totalFare * (promoActive ? (1 - PROMO_DISCOUNT) : 1),
+    eta: 'N/A',
+    nearbyDrivers: 0,
+    disabled: false,
+    surgeInfo: { multiplier: 1, reason: 'Normal pricing', label: 'Normal', isActive: false },
+  };
+
+  setSelectedRide(rideOption);
+  setGasBookingData(bookingData);
+  setGasRefillVisible(false);
+  setRideState('confirming');
+};
 
   return (
     <div style={ss.screen}>
@@ -278,13 +426,14 @@ export default function HomePage() {
         destination={destination}
         driverLocation={driverLocation}
         onRouteReady={handleRouteReady}
-        showRoute={!!pickup && !!destination}
+        showRoute={!!pickup && !!destination && !isActiveRide}
         travelMode='BICYCLING'
         trackingMode={
           rideState === 'driver_assigned' ? 'to_pickup' :
           rideState === 'en_route' ? 'to_destination' :
           null
         }
+        rideRoutePolyline={currentRide?.routePolyline ?? null}
       />
 
       {/* Toast notifications */}
@@ -375,15 +524,16 @@ export default function HomePage() {
           </div>
           <div style={ss.servicesGrid}>
             {[
-              { id: '1', name: 'Oye Motor',    img: '/images/motor.png',            info: 'Beat traffic',  disabled: false },
-              { id: '2', name: 'Oye Delivery', img: '/images/box.png',              info: 'Send items',    disabled: false },
-              { id: '3', name: 'Oye Bicycle',  img: '/images/bicycle_delivery.png', info: 'Eco delivery',  disabled: false },
-              { id: '4', name: 'Oye Ride',     img: '/images/car.png',              info: 'Coming soon',   disabled: true  },
+              { id: '1', name: 'Oye Motor',    img: '/images/motor.png',            info: 'Beat traffic', onPress: () => setLocationPickerVisible(true),  disabled: false },
+              { id: '2', name: 'Oye Delivery', img: '/images/box.png',              info: 'Send items', onPress: () => setLocationPickerVisible(true),  disabled: false },
+              { id: '3', name: 'Oye Bicycle',  img: '/images/bicycle_delivery.png', info: 'Eco delivery', onPress: () => setLocationPickerVisible(true), disabled: false },
+              { id: '4', name: 'Gas Refill',     img: '/images/gas_icon.png',              info: 'Refill cylinder', onPress: () => {setGasRefillVisible(true); setRideState('confirming')},  disabled: false  },
+              // { id: '5', name: 'Oye Ride',     img: '/images/car.png',              info: 'Coming soon', onPress: () => {},  disabled: true  },
             ].map((svc) => (
               <button
               key={svc.id}
               style={{ ...ss.serviceCard, opacity: svc.disabled ? 0.45 : 1 }}
-              onClick={() => !svc.disabled && setLocationPickerVisible(true)}
+              onClick={svc.disabled ? undefined: svc.onPress}
               disabled={svc.disabled}
               >
                 <img src={svc.img} alt={svc.name} style={ss.serviceImg} />
@@ -447,23 +597,53 @@ export default function HomePage() {
           onSelect={handleRideSelect}
           onCancel={() => { setRideState('idle'); setDestination(null); setPickup(null); setStops([]); }}
           onEditLocations={() => setLocationPickerVisible(true)}
+          promoActive={promoActive}
         />
       )}
 
       {/* ── CONFIRM RIDE ── */}
       {showConfirm && selectedRide && (
-        <ConfirmRideSheet
-          pickup={pickup!}
-          destination={destination!}
-          vehicleType={selectedRide.type as VehicleType}
-          fare={calculateFare(routeData?.distance || 0, selectedRide.type as VehicleType, selectedRide.surgeInfo?.multiplier || 1)}
-          routeData={routeData || { distance: 0, duration: 0 }}
-          onConfirm={handleConfirmRide}
-          onBack={() => setSelectedRide(null)}
-          isLoading={isLoading}
-          promoDiscount={promoActive ? PROMO_DISCOUNT : 0}
-        />
-      )}
+  <ConfirmRideSheet
+    pickup={pickup!}
+    destination={destination!}
+    vehicleType={selectedRide.type as VehicleType}
+    fare={gasBookingData
+      ? {
+          // Gas refill total is already final (computed by calculateGasRefillFare
+          // in GasRefillSheet) — do NOT recompute via calculateFare(), which
+          // would run the normal motorbike formula on a stale/0 distance and
+          // clamp to the minimum-fare floor instead.
+          totalFare: gasBookingData.totalFare,
+          baseFare: 0,
+          distanceFare: 0,
+        }
+      : calculateFare(routeData?.distance || 0, selectedRide.type as VehicleType, selectedRide.surgeInfo?.multiplier || 1)}
+    routeData={gasBookingData
+      ? {
+          // Gas refill distance/duration is the station round-trip, not the
+          // leftover normal-ride routeData (which is stale/0 for this flow).
+          distance: gasBookingData.distanceToStation + gasBookingData.distanceBack,
+          duration: routeData?.duration || 15,
+        }
+      : (routeData || { distance: 0, duration: 0 })}
+    onConfirm={handleConfirmRide}
+    onBack={gasBookingData ? () => {
+      // Back to gas refill sheet
+      setSelectedRide(null);
+      setGasBookingData(null);
+      setGasRefillVisible(true);
+      setRideState('idle');
+    } : () => setSelectedRide(null)}
+    isLoading={isLoading}
+    promoDiscount={promoActive ? PROMO_DISCOUNT : 0}
+    isGasRefill={!!gasBookingData}
+    rideTitle={gasBookingData ? 'Gas Refill' : undefined}
+    destinationLabel={gasBookingData
+      ? `${gasBookingData.station.name} → Return`
+      : undefined}
+    gasFareBreakdown={gasBookingData?.fareBreakdown}
+  />
+)}
 
       {/* ── NEW USER PROMO SHEET ── */}
       <NewUserPromoSheet
@@ -540,6 +720,22 @@ export default function HomePage() {
         userLocation={userLocation}
       />
 
+      {/* Gas refill booking sheet */}
+      {gasRefillVisible && (
+  <GasRefillSheet
+    visible={gasRefillVisible}
+    onClose={() => {
+      setGasRefillVisible(false);
+      setRideState('idle');
+      // if we came from the idle screen and no destination was set, do nothing else
+    }}
+    pickup={pickup}
+    onPickupChange={(newPickup) => setPickup(newPickup)}
+    onConfirm={handleGasRefillConfirm}
+    userLocation={userLocation}
+  />
+)}
+
       {/* Bottom nav only on idle */}
       {rideState === 'idle' && <BottomNav active="home" />}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -596,11 +792,11 @@ const ss: Record<string, React.CSSProperties> = {
   // Where to
   whereToBtn: {
     display: 'flex', alignItems: 'center', gap: 12, margin: '16px 20px 20px',
-    background: '#f5f5f5', borderRadius: 14, padding: '16px 18px',
+    background: '#e2e2e2', borderRadius: 14, padding: '16px 18px',
     border: 'none', cursor: 'pointer', width: 'calc(100% - 40px)', textAlign: 'left',
   },
   whereDot: { width: 10, height: 10, borderRadius: '50%', background: '#061ffa', flexShrink: 0 },
-  whereToText: { fontSize: 17, color: '#999', fontFamily: "'Poppins', sans-serif", fontWeight: 400 },
+  whereToText: { fontSize: 17, color: '#333', fontFamily: "'Poppins', sans-serif", fontWeight: 600 },
 
   // Services
   sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 14 },
@@ -609,7 +805,7 @@ const ss: Record<string, React.CSSProperties> = {
   seeAllText: { fontSize: 13, color: '#aaa', fontFamily: "'Poppins', sans-serif" },
   servicesGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 20px', marginBottom: 20 },
   serviceCard: {
-    background: '#f5f5f5', borderRadius: 16, padding: 16, border: 'none', cursor: 'pointer',
+    background: '#e2e2e2', borderRadius: 16, padding: 16, border: 'none', cursor: 'pointer',
     display: 'flex', flexDirection: 'column', alignItems: 'center', height: 140,
     justifyContent: 'center', transition: 'transform 0.15s',
   },

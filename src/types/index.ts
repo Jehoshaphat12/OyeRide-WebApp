@@ -35,6 +35,7 @@ export interface Driver {
   };
   photoUrl: string;
   rating: number;
+  totalRatings: number
   totalTrips: number;
   geohash: string;
   lastUpdated: Date | any;
@@ -75,6 +76,7 @@ export interface Ride {
     address: string;
     sequence: number;
   }>;
+  routePolyline?: string
   geohash: string;
   packageInfo?: {
     recipientName: string;
@@ -95,6 +97,25 @@ export interface Ride {
   userRating?: number;
   userFeedback?: string;
   feedbackTags?: string[];
+  cancelledBy?: string | null
+  cancellationReason?: string | any
+  cancelledAt?: Date | any
+  promoDiscount?: number
+  promoLabel?: string | undefined
+  createdAt: Date | any
+  pickedUpAt?: Date | any
+  arrivedAt?: Date | any
+  updatedAt: Date | any
+  surgeMultiplier?: number
+  surgeReason?: string
+  surgeLabel?: string
+  isGasRefill?: boolean
+  gasFareBreakdown?: Array<{ description: string; amount: number }>
+  riderLocation?:any
+  passengerFeedback: string | null,
+  riderRating: string | null,
+  riderFeedback: string | null,
+  paymentMethod?: 'cash' | 'card' | 'momo' | 'other' | string
 }
 
 export interface LiveTrackingData {

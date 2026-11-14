@@ -12,6 +12,8 @@ import {
   limit,
   serverTimestamp,
   addDoc,
+  Transaction,
+  runTransaction,
 } from 'firebase/firestore';
 import { firestore } from '../lib/firebase';
 import { Ride, User, Driver } from '../types';
@@ -31,6 +33,9 @@ static async getAdminUsers(): Promise<User[]> {
 
   static async updateUser(userId: string, data: Partial<User>): Promise<void> {
     await setDoc(doc(firestore, 'users', userId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  }
+  static async updateDriver(userId: string, data: Partial<Driver>): Promise<void> {
+    await setDoc(doc(firestore, 'drivers', userId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
   }
 
   static async getRide(rideId: string): Promise<Ride | null> {
@@ -95,6 +100,7 @@ static async getAdminUsers(): Promise<User[]> {
     await updateDoc(doc(firestore, 'rides', rideId), {
       status: 'cancelled',
       cancelledAt: serverTimestamp(),
+      cancelledBy: 'passenger',
       cancelReason: reason || 'Passenger cancelled',
       updatedAt: serverTimestamp(),
     });
@@ -113,4 +119,10 @@ static async getAdminUsers(): Promise<User[]> {
       updatedAt: serverTimestamp(),
     });
   }
+  static async runTransaction<T>(
+  updateFunction: (transaction: Transaction) => Promise<T>
+): Promise<T> {
+  return runTransaction(firestore, updateFunction);
+}
+  
 }

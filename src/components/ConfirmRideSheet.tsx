@@ -1,8 +1,9 @@
 import React from "react";
 import { VehicleType } from "../types";
 import { Icon, IconName } from "./Icons";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 
+// ── Vehicle labels & icons (for non‑gas rides) ──────────────────────────────
 const VEHICLE_LABELS: Record<VehicleType, { label: string; icon: IconName }> = {
   motor: { label: "OyeRide", icon: "motorcycle" },
   delivery: { label: "OyeDeliver", icon: "box" },
@@ -13,12 +14,22 @@ interface Props {
   pickup: { latitude: number; longitude: number; address: string };
   destination: { latitude: number; longitude: number; address: string };
   vehicleType: VehicleType;
-  fare: { totalFare: number; baseFare: number; distanceFare: number };
+  fare: {
+    totalFare: number;
+    baseFare: number;
+    distanceFare: number;
+    surgeAmount?: number;
+  };
   routeData: { distance: number; duration: number };
   onConfirm: () => void;
   onBack: () => void;
   isLoading: boolean;
-  promoDiscount?: number; // e.g. 0.10 for 10%
+  promoDiscount?: number;      // e.g. 0.10 = 10% off
+  // ── Gas refill specific ─────────────────────────────────────────────────
+  isGasRefill?: boolean;
+  rideTitle?: string;               // displayed instead of vehicle label
+  destinationLabel?: string;        // e.g. "Shell → Return"
+  gasFareBreakdown?: { description: string; amount: number }[];
 }
 
 export default function ConfirmRideSheet({
@@ -31,12 +42,32 @@ export default function ConfirmRideSheet({
   onBack,
   isLoading,
   promoDiscount = 0,
+  isGasRefill = false,
+  rideTitle,
+  destinationLabel,
+  gasFareBreakdown,
 }: Props) {
-  const v = VEHICLE_LABELS[vehicleType];
-  const discountAmount = promoDiscount > 0 ? fare.totalFare * promoDiscount : 0;
-  const finalFare = fare.totalFare - discountAmount;
+  // Choose display values
+  const vehicleData = VEHICLE_LABELS[vehicleType];
+  const displayTitle = isGasRefill
+    ? rideTitle || "Gas Refill"
+    : vehicleData.label;
+  const displayIcon: IconName = isGasRefill ? "flame-outline" : vehicleData.icon;
+  const displayDestination = isGasRefill
+    ? destinationLabel || destination.address
+    : destination.address;
+
+  // Price calculations
+  const discountAmount = promoDiscount > 0 && !isGasRefill
+    ? fare.totalFare * promoDiscount
+    : 0;
+  const finalFare = isGasRefill
+    ? fare.totalFare          // no promo on gas refill; total is already final
+    : fare.totalFare - discountAmount;
+
   return (
     <>
+      {/* Draggable sheet */}
       <motion.div
         drag="y"
         dragConstraints={{ top: -30, bottom: 250 }}
@@ -44,18 +75,13 @@ export default function ConfirmRideSheet({
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        // Logic to snap back or close
-        onDragEnd={(e, info) => {
-          if (info.offset.y > 150) {
-            // If dragged down far enough, you could hide it
-            // or just let it snap back to bottom: 70
-          }
-        }}
         style={styles.sheet}
       >
         <div style={{ width: "100%", padding: "12px 0", cursor: "grab" }}>
           <div style={styles.handle} />
         </div>
+
+        {/* Header */}
         <div style={styles.header}>
           <button style={styles.backBtn} onClick={onBack}>
             <svg
@@ -66,6 +92,7 @@ export default function ConfirmRideSheet({
               stroke="#333"
               strokeWidth="2.5"
               strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
@@ -74,35 +101,42 @@ export default function ConfirmRideSheet({
           <div style={{ width: 36 }} />
         </div>
 
-        {/* Vehicle */}
+        {/* Vehicle / service row */}
         <div style={styles.vehicleRow}>
           <div style={styles.vehicleEmoji}>
-            <Icon name={v.icon} size={26} color="#061ffa" strokeWidth={1.5} />
+            <Icon name={displayIcon} size={26} color="#061ffa" strokeWidth={1.5} />
           </div>
-          <div>
-            <div style={styles.vehicleName}>{v.label}</div>
+          <div style={{ flex: 1 }}>
+            <div style={styles.vehicleName}>{displayTitle}</div>
             <div style={styles.vehicleDetail}>
               {routeData.distance.toFixed(1)} km · ~
               {Math.round(routeData.duration)} min
             </div>
           </div>
           <div style={styles.fareAmount}>
-            {discountAmount > 0 ? (
-              <div style={{flexDirection: "column", display: "flex", alignItems: "end"}}>
-              <span style={{fontWeight: 700, fontSize: 22}}>
-                ₵ {finalFare.toFixed(2)}
-              </span>
-                <span style={{ fontWeight: 600, textDecoration: 'line-through', color: '#aaa', fontSize: 18, }}>
+            {!isGasRefill && discountAmount > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "end" }}>
+                <span style={{ fontWeight: 700, fontSize: 22 }}>
+                  ₵ {finalFare.toFixed(2)}
+                </span>
+                <span style={{
+                  fontWeight: 600,
+                  textDecoration: "line-through",
+                  color: "#aaa",
+                  fontSize: 18,
+                }}>
                   ₵ {fare.totalFare.toFixed(2)}
                 </span>
               </div>
             ) : (
-              `GH₵ ${Math.round(parseFloat(fare.totalFare.toFixed(2)))}`
+              <span style={{ fontWeight: 700, fontSize: 22 }}>
+                GH₵ {finalFare.toFixed(2)}
+              </span>
             )}
           </div>
         </div>
 
-        {/* Route */}
+        {/* Route card */}
         <div style={styles.routeCard}>
           <div style={styles.routeRow}>
             <div style={{ ...styles.routeDot, background: "#061ffa" }} />
@@ -116,60 +150,82 @@ export default function ConfirmRideSheet({
             <div style={{ ...styles.routeDot, background: "#ff7300" }} />
             <div style={styles.routeTexts}>
               <div style={styles.routeLabel}>Destination</div>
-              <div style={styles.routeAddress}>{destination.address}</div>
+              <div style={styles.routeAddress}>{displayDestination}</div>
             </div>
           </div>
         </div>
 
         {/* Fare breakdown */}
-        <div style={styles.fareCard}>
-          <div style={styles.fareRow}>
-            <span style={styles.fareKey}>Base Fare</span>
-            <span style={styles.fareVal}>GH₵ {fare.baseFare.toFixed(2)}</span>
-          </div>
-          <div style={styles.fareRow}>
-            <span style={styles.fareKey}>Distance Fare</span>
-            <span style={styles.fareVal}>
-              GH₵ {fare.distanceFare.toFixed(2)}
-            </span>
-          </div>
-          {(fare as any).surgeAmount > 0 && (
+        {isGasRefill && gasFareBreakdown ? (
+          <div style={styles.fareCard}>
+            {/* {gasFareBreakdown.map((item, idx) => (
+              <div key={idx} style={styles.fareRow}>
+                <span style={styles.fareKey}>{item.description}</span>
+                <span style={styles.fareVal}>GH₵ {item.amount.toFixed(2)}</span>
+              </div>
+            ))} */}
+            <div style={styles.fareDivider} />
             <div style={styles.fareRow}>
-              <span style={{ ...styles.fareKey, color: "#e65100" }}>
-                Surge Pricing
+              <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
+                Total
               </span>
-              <span style={{ ...styles.fareVal, color: "#e65100" }}>
-                + GH₵ {(fare as any).surgeAmount.toFixed(2)}
-              </span>
-            </div>
-          )}
-          {discountAmount > 0 && (
-            <div style={{ ...styles.fareRow, background: '#f0fff4', borderRadius: 8, padding: '6px 8px', margin: '2px -8px' }}>
-              <span style={{ ...styles.fareKey, color: '#2e7d32', fontWeight: 700 }}>
-                🎉 New Rider 10% Off
-              </span>
-              <span style={{ ...styles.fareVal, color: '#2e7d32', fontWeight: 700 }}>
-                - GH₵ {discountAmount.toFixed(2)}
+              <span style={{ ...styles.fareVal, fontWeight: 700, color: "#061ffa", fontSize: 17 }}>
+                GH₵ {finalFare.toFixed(2)}
               </span>
             </div>
-          )}
-          <div style={styles.fareDivider} />
-          <div style={styles.fareRow}>
-            <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
-              Total
-            </span>
-            <span
-              style={{
+          </div>
+        ) : (
+          <div style={styles.fareCard}>
+            <div style={styles.fareRow}>
+              <span style={styles.fareKey}>Base Fare</span>
+              <span style={styles.fareVal}>GH₵ {fare.baseFare.toFixed(2)}</span>
+            </div>
+            <div style={styles.fareRow}>
+              <span style={styles.fareKey}>Distance Fare</span>
+              <span style={styles.fareVal}>GH₵ {fare.distanceFare.toFixed(2)}</span>
+            </div>
+            {(fare as any).surgeAmount > 0 && (
+              <div style={styles.fareRow}>
+                <span style={{ ...styles.fareKey, color: "#e65100" }}>
+                  Surge Pricing
+                </span>
+                <span style={{ ...styles.fareVal, color: "#e65100" }}>
+                  + GH₵ {(fare as any).surgeAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div style={{
+                ...styles.fareRow,
+                background: "#f0fff4",
+                borderRadius: 8,
+                padding: "6px 8px",
+                margin: "2px -8px",
+              }}>
+                <span style={{ ...styles.fareKey, color: "#2e7d32", fontWeight: 700 }}>
+                  🎉 New Rider 10% Off
+                </span>
+                <span style={{ ...styles.fareVal, color: "#2e7d32", fontWeight: 700 }}>
+                  - GH₵ {discountAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div style={styles.fareDivider} />
+            <div style={styles.fareRow}>
+              <span style={{ ...styles.fareKey, fontWeight: 700, color: "#333" }}>
+                Total
+              </span>
+              <span style={{
                 ...styles.fareVal,
                 fontWeight: 700,
                 color: "#061ffa",
                 fontSize: 17,
-              }}
-            >
-              GH₵ {finalFare.toFixed(2)}
-            </span>
+              }}>
+                GH₵ {finalFare.toFixed(2)}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Payment */}
         <div style={styles.paymentRow}>
@@ -177,7 +233,8 @@ export default function ConfirmRideSheet({
           <span style={styles.paymentLabel}>Cash</span>
         </div>
       </motion.div>
-      {/* Footer confirm */}
+
+      {/* Fixed confirm button */}
       <div style={styles.footer}>
         <button
           style={{
@@ -191,6 +248,8 @@ export default function ConfirmRideSheet({
             <>
               <span style={styles.spinner} /> Finding a driver...
             </>
+          ) : isGasRefill ? (
+            "Confirm Gas Refill"
           ) : (
             "Confirm Booking"
           )}
@@ -200,6 +259,7 @@ export default function ConfirmRideSheet({
   );
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   sheet: {
     position: "absolute",
@@ -328,7 +388,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 20,
     border: "1px solid #ffe8cc",
   },
-  paymentIcon: { fontSize: 20 },
   paymentLabel: { fontSize: 14, fontWeight: 600, color: "#ff7300" },
   confirmBtn: {
     width: "100%",
